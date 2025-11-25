@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK ${{ matrix.java-version }}
         uses: actions/setup-java@v4
@@ -28,6 +30,16 @@ jobs:
       - name: Run tests
         run: mvn clean verify -B
 
+      - name: Add Coverage to PR
+        if: github.event_name == 'pull_request' && matrix.java-version == '21'
+        uses: madrapps/jacoco-report@v1.7.1
+        with:
+          paths: |
+            ${{ github.workspace }}/target/site/jacoco/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 80
+          min-coverage-changed-files: 80
+
       - name: Import test results to Xray
         if: always()
         uses: mikepenz/xray-action@{latest-release}
@@ -37,3 +49,5 @@ jobs:
           testFormat: "junit"
           testPaths: "**/target/TEST-*.xml"
           projectKey: "VCT"
+          testPlanKey: ""
+          testEnvironments: "java${{ matrix.java-version }}"
