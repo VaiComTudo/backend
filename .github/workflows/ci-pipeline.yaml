@@ -63,7 +63,7 @@ jobs:
 
       - name: Import test results to Xray
         if: always()
-        uses: mikepenz/xray-action@{latest-release}
+        uses: mikepenz/xray-action@v3.0.0
         with:
           username: ${{ secrets.XRAY_CLIENT_ID }}
           password: ${{ secrets.XRAY_CLIENT_SECRET }}
