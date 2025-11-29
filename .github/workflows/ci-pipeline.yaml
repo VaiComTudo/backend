@@ -62,7 +62,7 @@ jobs:
           min-coverage-changed-files: 80
 
       - name: Import test results to Xray
-        if: always()
+        if: always() && matrix.java-version == '21'
         uses: mikepenz/xray-action@v3.0.0
         with:
           username: ${{ secrets.XRAY_CLIENT_ID }}
@@ -70,5 +70,5 @@ jobs:
           testFormat: "junit"
           testPaths: "**/target/TEST-*.xml"
           projectKey: "VCT"
-          testPlanKey: ""
+          testPlanKey: "VCT-61"
           testEnvironments: "java${{ matrix.java-version }}"
