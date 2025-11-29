@@ -73,6 +73,15 @@ jobs:
           echo "=== Failsafe reports directory ==="
           ls -lah target/failsafe-reports/ 2>/dev/null || echo "No failsafe-reports directory"
 
+      - name: Inspect test XML content
+        if: always()
+        run: |
+          echo "=== Content of test XML file ==="
+          cat target/surefire-reports/TEST-com.vaicomtudo.backend.VaiComTudoApplicationTests.xml
+          echo ""
+          echo "=== Checking for testcase elements ==="
+          grep -c "<testcase" target/surefire-reports/TEST-com.vaicomtudo.backend.VaiComTudoApplicationTests.xml || echo "No testcase elements found"
+
       - name: Import test results to Xray
         if: always() && matrix.java-version == '21'
         uses: mikepenz/xray-action@v3.0.0
@@ -82,7 +91,6 @@ jobs:
           testFormat: "junit"
           testPaths: |
             **/target/surefire-reports/TEST-*.xml
-            **/target/failsafe-reports/TEST-*.xml
           projectKey: "VCT"
           testPlanKey: "VCT-61"
           testEnvironments: "java${{ matrix.java-version }}"
