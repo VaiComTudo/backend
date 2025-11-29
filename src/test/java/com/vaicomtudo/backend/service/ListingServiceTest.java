@@ -30,6 +30,8 @@ import com.vaicomtudo.backend.data.repository.UserRepository;
 import com.vaicomtudo.backend.exception.IDNotFoundException;
 import com.vaicomtudo.backend.exception.MismatchIDException;
 
+import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
+
 @ExtendWith(MockitoExtension.class)
 class ListingServiceTest {
 
@@ -64,6 +66,7 @@ class ListingServiceTest {
 
     @Test
     @DisplayName("saveListing should save listing when owner ID matches")
+    @Requirement("VCT-48")
     void whenSaveListing_withMatchingOwnerId_thenListingSaved() {
         // Arrange
         when(userRepository.findById(ownerId)).thenReturn(Optional.of(owner));
@@ -81,6 +84,7 @@ class ListingServiceTest {
 
     @Test
     @DisplayName("saveListing should throw MismatchIDException when owner ID does not match")
+    @Requirement("VCT-48")
     void whenSaveListing_withMismatchedOwnerId_thenThrowException() {
         // Arrange
         UUID differentId = UUID.randomUUID();
@@ -95,6 +99,7 @@ class ListingServiceTest {
 
     @Test
     @DisplayName("saveListing should throw IDNotFoundException when user not found")
+    @Requirement("VCT-48")
     void whenSaveListing_withNonExistentUser_thenThrowException() {
         // Arrange
         when(userRepository.findById(ownerId)).thenReturn(Optional.empty());
@@ -109,6 +114,7 @@ class ListingServiceTest {
 
     @Test
     @DisplayName("getListings should return user listings when user exists")
+    @Requirement("VCT-48")
     void whenGetListings_withExistingUser_thenReturnListings() {
         // Arrange
         Set<Listing> listings = new HashSet<>();
@@ -128,6 +134,7 @@ class ListingServiceTest {
 
     @Test
     @DisplayName("getListings should return empty set when user has no listings")
+    @Requirement("VCT-48")
     void whenGetListings_withNoListings_thenReturnEmptySet() {
         // Arrange
         owner.setListings(new HashSet<>());
@@ -143,6 +150,7 @@ class ListingServiceTest {
 
     @Test
     @DisplayName("getListings should throw IDNotFoundException when user not found")
+    @Requirement("VCT-48")
     void whenGetListings_withNonExistentUser_thenThrowException() {
         // Arrange
         when(userRepository.findById(ownerId)).thenReturn(Optional.empty());

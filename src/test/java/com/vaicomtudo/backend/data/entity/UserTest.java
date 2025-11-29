@@ -9,6 +9,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
+
 class UserTest {
 
     private User user;
@@ -28,6 +30,7 @@ class UserTest {
 
     @Test
     @DisplayName("Should create user with default empty listings set")
+    @Requirement("VCT-48")
     void whenCreateUser_thenListingsSetIsEmpty() {
         // Assert
         assertThat(user.getListings()).isNotNull();
@@ -36,6 +39,7 @@ class UserTest {
 
     @Test
     @DisplayName("Should add listing to user using helper method")
+    @Requirement("VCT-48")
     void whenAddListing_thenListingIsAddedAndOwnerIsSet() {
         // Arrange
         Listing listing = new Listing();
@@ -55,6 +59,7 @@ class UserTest {
 
     @Test
     @DisplayName("Should remove listing from user using helper method")
+    @Requirement("VCT-48")
     void whenRemoveListing_thenListingIsRemovedAndOwnerIsNull() {
         // Arrange
         Listing listing = new Listing();
@@ -75,6 +80,7 @@ class UserTest {
 
     @Test
     @DisplayName("Should handle multiple listings")
+    @Requirement("VCT-48")
     void whenAddMultipleListings_thenAllAreStored() {
         // Arrange
         Listing listing1 = new Listing();

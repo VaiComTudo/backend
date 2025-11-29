@@ -34,6 +34,8 @@ import com.vaicomtudo.backend.exception.IDNotFoundException;
 import com.vaicomtudo.backend.exception.MismatchIDException;
 import com.vaicomtudo.backend.service.ListingService;
 
+import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
+
 @WebMvcTest(OwnerController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class OwnerControllerTest {
@@ -68,6 +70,7 @@ class OwnerControllerTest {
 
     @Test
     @DisplayName("POST /api/v1/owners/{id}/listings should create listing successfully")
+    @Requirement("VCT-48")
     void whenAddListing_withValidData_thenReturns201() throws Exception {
         // Arrange
         when(listingService.saveListing(any(Listing.class), eq(ownerId)))
@@ -88,6 +91,7 @@ class OwnerControllerTest {
 
     @Test
     @DisplayName("POST /api/v1/owners/{id}/listings should return 400 when ID mismatch")
+    @Requirement("VCT-48")
     void whenAddListing_withMismatchedId_thenReturns400() throws Exception {
         // Arrange
         when(listingService.saveListing(any(Listing.class), eq(ownerId)))
@@ -103,6 +107,7 @@ class OwnerControllerTest {
 
     @Test
     @DisplayName("POST /api/v1/owners/{id}/listings should return 400 when user not found")
+    @Requirement("VCT-48")
     void whenAddListing_withNonExistentUser_thenReturns400() throws Exception {
         // Arrange
         when(listingService.saveListing(any(Listing.class), eq(ownerId)))
@@ -118,6 +123,7 @@ class OwnerControllerTest {
 
     @Test
     @DisplayName("POST /api/v1/owners/{id}/listings should return 400 with invalid JSON")
+    @Requirement("VCT-48")
     void whenAddListing_withInvalidJson_thenReturns400() throws Exception {
         // Act & Assert
         mockMvc.perform(post("/api/v1/owners/{id}/listings", ownerId)
@@ -129,6 +135,7 @@ class OwnerControllerTest {
 
     @Test
     @DisplayName("GET /api/v1/owners/{id}/listings should return all listings")
+    @Requirement("VCT-48")
     void whenGetListings_withExistingUser_thenReturnsListings() throws Exception {
         // Arrange
         Listing listing2 = new Listing();
@@ -156,6 +163,7 @@ class OwnerControllerTest {
 
     @Test
     @DisplayName("GET /api/v1/owners/{id}/listings should return empty array when no listings")
+    @Requirement("VCT-48")
     void whenGetListings_withNoListings_thenReturnsEmptyArray() throws Exception {
         // Arrange
         when(listingService.getListings(ownerId)).thenReturn(new HashSet<>());
@@ -171,6 +179,7 @@ class OwnerControllerTest {
 
     @Test
     @DisplayName("GET /api/v1/owners/{id}/listings should return 400 when user not found")
+    @Requirement("VCT-48")
     void whenGetListings_withNonExistentUser_thenReturns400() throws Exception {
         // Arrange
         when(listingService.getListings(ownerId))

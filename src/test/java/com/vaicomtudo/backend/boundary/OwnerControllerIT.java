@@ -28,6 +28,8 @@ import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
+import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -67,6 +69,7 @@ class OwnerControllerIT {
 
     @Test
     @DisplayName("Integration test: POST and GET listings flow")
+    @Requirement("VCT-48")
     void whenCreateAndRetrieveListings_thenWorkEndToEnd() throws Exception {
         // Create first listing
         Listing listing1 = new Listing();
@@ -115,6 +118,7 @@ class OwnerControllerIT {
 
     @Test
     @DisplayName("Integration test: Verify listing is persisted in database")
+    @Requirement("VCT-48")
     void whenCreateListing_thenListingExistsInDatabase() throws Exception {
         // Arrange
         Listing listing = new Listing();
@@ -142,6 +146,7 @@ class OwnerControllerIT {
 
     @Test
     @DisplayName("Integration test: Verify user-listing relationship integrity")
+    @Requirement("VCT-48")
     void whenCreateMultipleListings_thenAllBelongToSameOwner() throws Exception {
         // Create multiple listings
         for (int i = 1; i <= 3; i++) {
