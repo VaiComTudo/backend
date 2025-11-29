@@ -62,11 +62,11 @@ jobs:
           min-coverage-changed-files: 80
 
       - name: Import test results to Xray
-        if: always() && matrix.java-version == '21'
-        env:
-          XRAYCLOUD_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
-          XRAYCLOUD_CLIENT_SECRET: ${{ secrets.XRAY_CLIENT_SECRET }}
-          XRAYCLOUD_TEST_PLAN_KEY: ${{ vars.XRAY_TEST_PLAN_KEY }}
-          REVISON: ${{ github.ref_name }}
-          TEST_ENVIRONMENT: java${{ matrix.java }}
-        run: mvn -Dxray.clientId=${{ env.XRAYCLOUD_CLIENT_ID }} -Dxray.clientSecret=${{ env.XRAYCLOUD_CLIENT_SECRET }} -Dxray.testEnvironment=${{ env.TEST_ENVIRONMENT }} -Dxray.testPlanKey=${{ env.XRAYCLOUD_TEST_PLAN_KEY }} -Dxray.revision=${{ env.REVISON }} xray:import-results  
+        uses: mikepenz/xray-action@{latest-release}
+        with:
+          username: ${{ secrets.XRAY_CLIENT_ID }}
+          password: ${{ secrets.XRAY_CLIENT_SECRET }}
+          testFormat: "junit"
+          testPaths: "**/test/*.xml"
+          testExecKey: "VCT-62"
+          projectKey: "VCT"
