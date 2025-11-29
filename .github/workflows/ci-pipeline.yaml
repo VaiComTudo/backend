@@ -67,6 +67,6 @@ jobs:
           username: ${{ secrets.XRAY_CLIENT_ID }}
           password: ${{ secrets.XRAY_CLIENT_SECRET }}
           testFormat: "junit"
-          testPaths: "**/test/*.xml"
+          testPaths: "**/TEST-junit-jupiter.xml"
           testExecKey: "VCT-62"
           projectKey: "VCT"
