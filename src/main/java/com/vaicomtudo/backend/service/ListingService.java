@@ -7,6 +7,7 @@ import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
+import com.vaicomtudo.backend.exception.IDNotFoundException;
 import com.vaicomtudo.backend.exception.MismatchIDException;
 
 public class ListingService {
@@ -24,7 +25,7 @@ public class ListingService {
             throw new MismatchIDException();
         }
         if (userRepository.findById(id).isEmpty()) {
-            throw new IllegalArgumentException("UUID not found!");
+            throw new IDNotFoundException();
         }
 
         return listingRepository.save(listing);
@@ -32,7 +33,7 @@ public class ListingService {
 
     public Set<Listing> getListings(UUID id) {
         if (userRepository.findById(id).isEmpty()) {
-            throw new IllegalArgumentException("UUID not found!");
+            throw new IDNotFoundException();
         }
 
         User user = userRepository.findById(id).get();
