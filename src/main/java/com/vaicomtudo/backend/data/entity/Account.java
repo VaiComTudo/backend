@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -40,4 +41,9 @@ public class Account {
     @Getter
     @Setter
     private String passwordHash;
+
+    @Lob
+    @Getter
+    @Setter
+    private byte[] photo;
 }
