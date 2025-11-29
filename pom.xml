@@ -216,7 +216,7 @@
 					<cloud>true</cloud>
 					<projectKey>VCT</projectKey>
 					<reportFormat>junit</reportFormat>
-					<reportFile>reports/TEST-junit-jupiter.xml</reportFile>
+					<reportFile>target/TEST-junit-jupiter.xml</reportFile>
 				</configuration>
 			</plugin>
 		</plugins>
