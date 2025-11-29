@@ -89,9 +89,8 @@ jobs:
           username: ${{ secrets.XRAY_CLIENT_ID }}
           password: ${{ secrets.XRAY_CLIENT_SECRET }}
           testFormat: "junit"
-          testPaths: "**/target/surefire-reports/**/TEST-*.xml"
+          testPaths: |
+            **/target/surefire-reports/TEST-*.xml
           projectKey: "VCT"
           testPlanKey: "VCT-61"
           testEnvironments: "java${{ matrix.java-version }}"
-          failOnImportError: false
-          continueOnImportError: true
