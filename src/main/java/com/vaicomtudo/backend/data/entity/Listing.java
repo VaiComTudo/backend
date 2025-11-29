@@ -28,7 +28,7 @@ import lombok.Setter;
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode
+@EqualsAndHashCode(exclude = {"owner", "availability", "photos"})
 public class Listing {
 
     @Id
