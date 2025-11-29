@@ -1,4 +1,4 @@
-package com.vaicomtudo.backend.data;
+package com.vaicomtudo.backend.data.entity;
 
 import java.time.LocalDate;
 import java.util.HashSet;

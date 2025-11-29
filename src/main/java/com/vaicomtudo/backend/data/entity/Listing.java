@@ -1,5 +1,5 @@
 
-package com.vaicomtudo.backend.data;
+package com.vaicomtudo.backend.data.entity;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
