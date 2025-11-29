@@ -177,7 +177,15 @@
 							junit.jupiter.extensions.autodetection.enabled=true
 						</configurationParameters>
 					</properties>
+					<reportNameSuffix>xray</reportNameSuffix>
 				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>app.getxray</groupId>
+						<artifactId>xray-junit-extensions</artifactId>
+						<version>${xray-junit-extensions.version}</version>
+					</dependency>
+				</dependencies>
 			</plugin>
 
 			<plugin>
