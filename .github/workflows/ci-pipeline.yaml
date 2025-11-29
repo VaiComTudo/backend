@@ -62,7 +62,7 @@ jobs:
           min-coverage-changed-files: 80
 
       - name: Import test results to Xray
-        uses: mikepenz/xray-action@{latest-release}
+        uses: mikepenz/xray-action@v3
         with:
           username: ${{ secrets.XRAY_CLIENT_ID }}
           password: ${{ secrets.XRAY_CLIENT_SECRET }}
