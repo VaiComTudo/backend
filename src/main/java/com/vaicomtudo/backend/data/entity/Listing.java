@@ -20,47 +20,35 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(exclude = {"owner", "availability", "photos"})
+@Data
 public class Listing {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Getter
-    @Setter
     private UUID id;
 
     @ManyToOne
     @JoinColumn(name = "owner_id")
-    @Getter
-    @Setter
     private User owner;
 
     @Column(nullable = false)
-    @Getter
-    @Setter
     private String description;
 
     @Column(nullable = false)
-    @Getter
-    @Setter
     private String title;
 
     @Column(nullable = false, precision = 19, scale = 2)
-    @Getter
-    @Setter
     private BigDecimal price;
 
     @Column(nullable = false)
-    @Getter
-    @Setter
     private ListingState state = ListingState.AVAILABLE;
 
     @ElementCollection

@@ -17,38 +17,30 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode(exclude = {"listings", "defaultAvailability"})
+@Data
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Getter
-    @Setter
     private UUID id;
 
     @Column(nullable = false)
-    @Getter
-    @Setter
     private LocalDate birthdate;
 
     @OneToOne
     @JoinColumn(name = "account_id", referencedColumnName = "id")
-    @Getter
-    @Setter
     private Account account;
 
     // TODO: provavelmente calular isto com a lista de ratings
     @Column(nullable = false)
-    @Getter
-    @Setter
     private double rating;
 
     @ElementCollection
@@ -56,14 +48,10 @@ public class User {
         name = "user_availability",
         joinColumns = @JoinColumn(name = "user_id")
     )
-    @Getter
-    @Setter
     private Set<AvailabilityPeriod> defaultAvailability = new HashSet<>();
 
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Getter
-    @Setter
     private Set<Listing> listings = new HashSet<>();
 
     // convenience helper
