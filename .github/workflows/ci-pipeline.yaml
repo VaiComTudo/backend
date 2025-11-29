@@ -61,6 +61,18 @@ jobs:
           min-coverage-overall: 80
           min-coverage-changed-files: 80
 
+      - name: List test reports (Debug)
+          if: always()
+          run: |
+            echo "=== Searching for test reports ==="
+            find . -name "TEST-*.xml" -type f || echo "No TEST-*.xml files found"
+            echo ""
+            echo "=== Surefire reports directory ==="
+            ls -lah target/surefire-reports/ 2>/dev/null || echo "No surefire-reports directory"
+            echo ""
+            echo "=== Failsafe reports directory ==="
+            ls -lah target/failsafe-reports/ 2>/dev/null || echo "No failsafe-reports directory"
+
       - name: Import test results to Xray
         if: always() && matrix.java-version == '21'
         uses: mikepenz/xray-action@v3.0.0
@@ -68,7 +80,9 @@ jobs:
           username: ${{ secrets.XRAY_CLIENT_ID }}
           password: ${{ secrets.XRAY_CLIENT_SECRET }}
           testFormat: "junit"
-          testPaths: "**/target/TEST-*.xml"
+          testPaths: |
+            **/target/surefire-reports/TEST-*.xml
+            **/target/failsafe-reports/TEST-*.xml
           projectKey: "VCT"
           testPlanKey: "VCT-61"
           testEnvironments: "java${{ matrix.java-version }}"
