@@ -2,10 +2,13 @@
 package com.vaicomtudo.backend.data;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -15,6 +18,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -54,6 +58,10 @@ public class Listing {
     @Setter
     private BigDecimal price;
 
+    @Column(nullable = false)
+    @Getter
+    @Setter
+    private ListingState state = ListingState.AVAILABLE;
 
     @ElementCollection
     @CollectionTable(
@@ -61,4 +69,7 @@ public class Listing {
         joinColumns = @JoinColumn(name = "listing_id")
     )
     private Set<AvailabilityPeriod> availability = new HashSet<>();
+
+    @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL)
+    private List<ListingPhoto> photos = new ArrayList<>();
 }
