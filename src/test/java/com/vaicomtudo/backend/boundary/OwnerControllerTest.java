@@ -87,7 +87,6 @@ class OwnerControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/v1/owners/{id}/listings", ownerId)
-                .param("id", ownerId.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(listing)))
             .andExpect(status().isCreated())
@@ -108,7 +107,6 @@ class OwnerControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/v1/owners/{id}/listings", ownerId)
-                .param("id", ownerId.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(listing)))
             .andExpect(status().isBadRequest());
@@ -124,7 +122,6 @@ class OwnerControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/v1/owners/{id}/listings", ownerId)
-                .param("id", ownerId.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(listing)))
             .andExpect(status().isNotFound());
@@ -136,7 +133,6 @@ class OwnerControllerTest {
     void whenAddListing_withInvalidJson_thenReturns400() throws Exception {
         // Act & Assert
         mockMvc.perform(post("/api/v1/owners/{id}/listings", ownerId)
-                .param("id", ownerId.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{ invalid json }"))
             .andExpect(status().isBadRequest());
@@ -163,7 +159,6 @@ class OwnerControllerTest {
 
         // Act & Assert
         mockMvc.perform(get("/api/v1/owners/{id}/listings", ownerId)
-                .param("id", ownerId.toString())
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -179,7 +174,6 @@ class OwnerControllerTest {
 
         // Act & Assert
         mockMvc.perform(get("/api/v1/owners/{id}/listings", ownerId)
-                .param("id", ownerId.toString())
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -196,7 +190,6 @@ class OwnerControllerTest {
 
         // Act & Assert
         mockMvc.perform(get("/api/v1/owners/{id}/listings", ownerId)
-                .param("id", ownerId.toString())
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound());
     }

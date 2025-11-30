@@ -3,6 +3,8 @@ package com.vaicomtudo.backend.service;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.stereotype.Service;
+
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
@@ -10,6 +12,7 @@ import com.vaicomtudo.backend.data.repository.UserRepository;
 import com.vaicomtudo.backend.exception.IDNotFoundException;
 import com.vaicomtudo.backend.exception.MismatchIDException;
 
+@Service
 public class ListingService {
 
     private ListingRepository listingRepository;
