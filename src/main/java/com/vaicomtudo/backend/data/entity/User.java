@@ -16,15 +16,17 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "app_user")
 @AllArgsConstructor
 @NoArgsConstructor
-@EqualsAndHashCode(exclude = {"listings", "defaultAvailability"})
+@EqualsAndHashCode(exclude = { "listings", "defaultAvailability" })
 @Data
 public class User {
 
@@ -35,7 +37,7 @@ public class User {
     @Column(nullable = false)
     private LocalDate birthdate;
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.PERSIST)
     @JoinColumn(name = "account_id", referencedColumnName = "id")
     private Account account;
 
@@ -44,12 +46,8 @@ public class User {
     private double rating;
 
     @ElementCollection
-    @CollectionTable(
-        name = "user_availability",
-        joinColumns = @JoinColumn(name = "user_id")
-    )
+    @CollectionTable(name = "user_availability", joinColumns = @JoinColumn(name = "user_id"))
     private Set<AvailabilityPeriod> defaultAvailability = new HashSet<>();
-
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Listing> listings = new HashSet<>();
