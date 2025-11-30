@@ -194,7 +194,7 @@
 				<configuration>
 					<excludes>
 						<!-- Exclude security configuration from coverage -->
-						<exclude>**/com/vaicomtudo/backend/config/SecurityConfig.class</exclude>
+						<exclude>**/SecurityConfig.class</exclude>
 					</excludes>
 				</configuration>
 				<executions>
