@@ -12,6 +12,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -19,6 +20,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -40,9 +42,11 @@ public class Listing {
     private User owner;
 
     @Column(nullable = false)
+    @NotBlank
     private String description;
 
     @Column(nullable = false)
+    @NotBlank
     private String title;
 
     @Column(nullable = false, precision = 19, scale = 2)
@@ -50,6 +54,18 @@ public class Listing {
 
     @Column(nullable = false)
     private ListingState state = ListingState.AVAILABLE;
+
+    @Embedded
+    @Column(nullable = false)
+    private Vehicle vehicle;
+
+    @Column(nullable = false)
+    @NotBlank
+    private String pickUpLocation;
+
+    @Column(nullable = false)
+    @NotBlank
+    private String dropOffLocation;
 
     @ElementCollection
     @CollectionTable(

@@ -25,6 +25,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.data.entity.ListingState;
 import com.vaicomtudo.backend.data.entity.User;
+import com.vaicomtudo.backend.data.entity.Vehicle;
+import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 import com.vaicomtudo.backend.exception.IDNotFoundException;
@@ -62,6 +64,13 @@ class ListingServiceTest {
         listing.setDescription("Test Description");
         listing.setPrice(BigDecimal.valueOf(50.00));
         listing.setState(ListingState.AVAILABLE);
+        
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("Car");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        listing.setVehicle(vehicle);
+        listing.setPickUpLocation("Test Pickup");
+        listing.setDropOffLocation("Test Dropoff");
     }
 
     @Test

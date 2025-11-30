@@ -30,6 +30,8 @@ import tools.jackson.databind.ObjectMapper;
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.data.entity.ListingState;
 import com.vaicomtudo.backend.data.entity.User;
+import com.vaicomtudo.backend.data.entity.Vehicle;
+import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.exception.IDNotFoundException;
 import com.vaicomtudo.backend.exception.MismatchIDException;
 import com.vaicomtudo.backend.service.ListingService;
@@ -66,6 +68,13 @@ class OwnerControllerTest {
         listing.setDescription("Test Description");
         listing.setPrice(BigDecimal.valueOf(50.00));
         listing.setState(ListingState.AVAILABLE);
+        
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("Car");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        listing.setVehicle(vehicle);
+        listing.setPickUpLocation("Test Pickup");
+        listing.setDropOffLocation("Test Dropoff");
     }
 
     @Test
