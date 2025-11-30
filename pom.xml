@@ -191,6 +191,12 @@
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>${jacoco.version}</version>
+				<configuration>
+					<excludes>
+						<!-- Exclude security configuration from coverage -->
+						<exclude>**/com/vaicomtudo/backend/config/SecurityConfig.class</exclude>
+					</excludes>
+				</configuration>
 				<executions>
 					<execution>
 						<id>prepare-agent</id>
