@@ -13,7 +13,6 @@ import com.vaicomtudo.backend.data.entity.ListingState;
 
 @Repository
 public interface ListingRepository extends JpaRepository<Listing, UUID> {
-    // Query to find listings by state and vehicle type
-    @Query("SELECT l FROM Listing l WHERE l.state = :state AND l.vehicle.type = :category")
-    List<Listing> findByStateAndVehicleType(@Param("state") ListingState state, @Param("category") String category);
+    @Query("SELECT l FROM Listing l WHERE l.state = :state AND l.vehicle.type = :type")
+    List<Listing> findByStateAndVehicleType(@Param("state") ListingState state, @Param("type") String type);
 }

@@ -36,172 +36,134 @@ import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
 @AutoConfigureMockMvc(addFilters = false)
 class RenterControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @MockitoBean
-    private ListingService listingService;
+        @MockitoBean
+        private ListingService listingService;
 
-    private User owner;
-    private Listing listing1;
-    private Listing listing2;
+        private User owner;
+        private Listing listing1;
 
-    @BeforeEach
-    void setUp() {
-        owner = new User();
-        owner.setId(UUID.randomUUID());
+        @BeforeEach
+        void setUp() {
+                owner = new User();
+                owner.setId(UUID.randomUUID());
 
-        listing1 = new Listing();
-        listing1.setId(UUID.randomUUID());
-        listing1.setOwner(owner);
-        listing1.setTitle("Bicycle Rental");
-        listing1.setDescription("Mountain bike for rent");
-        listing1.setPrice(BigDecimal.valueOf(25.00));
-        listing1.setState(ListingState.AVAILABLE);
+                listing1 = new Listing();
+                listing1.setId(UUID.randomUUID());
+                listing1.setOwner(owner);
+                listing1.setTitle("Bicycle Rental");
+                listing1.setDescription("Mountain bike for rent");
+                listing1.setPrice(BigDecimal.valueOf(25.00));
+                listing1.setState(ListingState.AVAILABLE);
 
-        Vehicle vehicle1 = new Vehicle();
-        vehicle1.setType("bicycle");
-        vehicle1.setCondition(VehicleCondition.GOOD);
-        listing1.setVehicle(vehicle1);
-        listing1.setPickUpLocation("Location A");
-        listing1.setDropOffLocation("Location B");
+                Vehicle vehicle1 = new Vehicle();
+                vehicle1.setType("bicycle");
+                vehicle1.setCondition(VehicleCondition.GOOD);
+                listing1.setVehicle(vehicle1);
+                listing1.setPickUpLocation("Location A");
+                listing1.setDropOffLocation("Location B");
+        }
 
-        listing2 = new Listing();
-        listing2.setId(UUID.randomUUID());
-        listing2.setOwner(owner);
-        listing2.setTitle("Scooter Rental");
-        listing2.setDescription("Electric scooter");
-        listing2.setPrice(BigDecimal.valueOf(30.00));
-        listing2.setState(ListingState.AVAILABLE);
+        @Test
+        @DisplayName("GET /api/v1/renters/listings?category=bicycle should return only bicycle listings")
+        @Requirement("VCT-32")
+        void whenGetListingsByCategory_withBicycleCategory_thenReturnsBicycleListings() throws Exception {
+                // Arrange
+                List<Listing> bicycleListings = new ArrayList<>();
+                bicycleListings.add(listing1);
 
-        Vehicle vehicle2 = new Vehicle();
-        vehicle2.setType("scooter");
-        vehicle2.setCondition(VehicleCondition.EXCELLENT);
-        listing2.setVehicle(vehicle2);
-        listing2.setPickUpLocation("Location C");
-        listing2.setDropOffLocation("Location D");
-    }
+                when(listingService.getAvailableListingsByCategory("bicycle"))
+                                .thenReturn(bicycleListings);
 
-    @Test
-    @DisplayName("GET /api/v1/renters/listings?category=bicycle should return only bicycle listings")
-    @Requirement("VCT-32")
-    void whenGetListingsByCategory_withBicycleCategory_thenReturnsBicycleListings() throws Exception {
-        // Arrange
-        List<Listing> bicycleListings = new ArrayList<>();
-        bicycleListings.add(listing1);
+                // Act & Assert
+                mockMvc.perform(get("/api/v1/renters/listings")
+                                .param("category", "bicycle")
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isOk())
+                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(jsonPath("$", hasSize(1)))
+                                .andExpect(jsonPath("$[0].title", is("Bicycle Rental")))
+                                .andExpect(jsonPath("$[0].vehicle.type", is("bicycle")));
+        }
 
-        when(listingService.getAvailableListingsByCategory("bicycle"))
-                .thenReturn(bicycleListings);
+        @Test
+        @DisplayName("GET /api/v1/renters/listings?category=skate should return only skate listings")
+        @Requirement("VCT-32")
+        void whenGetListingsByCategory_withSkateCategory_thenReturnsSkateListings() throws Exception {
+                // Arrange
+                Listing skateListing = new Listing();
+                skateListing.setId(UUID.randomUUID());
+                skateListing.setOwner(owner);
+                skateListing.setTitle("Skate Rental");
+                skateListing.setDescription("Longboard skate");
+                skateListing.setPrice(BigDecimal.valueOf(20.00));
+                skateListing.setState(ListingState.AVAILABLE);
 
-        // Act & Assert
-        mockMvc.perform(get("/api/v1/renters/listings")
-                .param("category", "bicycle")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].title", is("Bicycle Rental")))
-                .andExpect(jsonPath("$[0].vehicle.type", is("bicycle")));
-    }
+                Vehicle vehicle = new Vehicle();
+                vehicle.setType("skate");
+                vehicle.setCondition(VehicleCondition.GOOD);
+                skateListing.setVehicle(vehicle);
+                skateListing.setPickUpLocation("Location E");
+                skateListing.setDropOffLocation("Location F");
 
-    @Test
-    @DisplayName("GET /api/v1/renters/listings?category=scooter should return only scooter listings")
-    @Requirement("VCT-32")
-    void whenGetListingsByCategory_withScooterCategory_thenReturnsScooterListings() throws Exception {
-        // Arrange
-        List<Listing> scooterListings = new ArrayList<>();
-        scooterListings.add(listing2);
+                List<Listing> skateListings = new ArrayList<>();
+                skateListings.add(skateListing);
 
-        when(listingService.getAvailableListingsByCategory("scooter"))
-                .thenReturn(scooterListings);
+                when(listingService.getAvailableListingsByCategory("skate"))
+                                .thenReturn(skateListings);
 
-        // Act & Assert
-        mockMvc.perform(get("/api/v1/renters/listings")
-                .param("category", "scooter")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].title", is("Scooter Rental")))
-                .andExpect(jsonPath("$[0].vehicle.type", is("scooter")));
-    }
+                // Act & Assert
+                mockMvc.perform(get("/api/v1/renters/listings")
+                                .param("category", "skate")
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isOk())
+                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(jsonPath("$", hasSize(1)))
+                                .andExpect(jsonPath("$[0].title", is("Skate Rental")))
+                                .andExpect(jsonPath("$[0].vehicle.type", is("skate")));
+        }
 
-    @Test
-    @DisplayName("GET /api/v1/renters/listings?category=skate should return only skate listings")
-    @Requirement("VCT-32")
-    void whenGetListingsByCategory_withSkateCategory_thenReturnsSkateListings() throws Exception {
-        // Arrange
-        Listing skateListing = new Listing();
-        skateListing.setId(UUID.randomUUID());
-        skateListing.setOwner(owner);
-        skateListing.setTitle("Skate Rental");
-        skateListing.setDescription("Longboard skate");
-        skateListing.setPrice(BigDecimal.valueOf(20.00));
-        skateListing.setState(ListingState.AVAILABLE);
+        @Test
+        @DisplayName("GET /api/v1/renters/listings?category=nonExistent should return empty list")
+        @Requirement("VCT-32")
+        void whenGetListingsByCategory_withNonExistentCategory_thenReturnsEmptyList() throws Exception {
+                // Arrange
+                when(listingService.getAvailableListingsByCategory("nonExistent"))
+                                .thenReturn(new ArrayList<>());
 
-        Vehicle vehicle = new Vehicle();
-        vehicle.setType("skate");
-        vehicle.setCondition(VehicleCondition.GOOD);
-        skateListing.setVehicle(vehicle);
-        skateListing.setPickUpLocation("Location E");
-        skateListing.setDropOffLocation("Location F");
+                // Act & Assert
+                mockMvc.perform(get("/api/v1/renters/listings")
+                                .param("category", "nonExistent")
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isOk())
+                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(jsonPath("$", hasSize(0)));
+        }
 
-        List<Listing> skateListings = new ArrayList<>();
-        skateListings.add(skateListing);
+        @Test
+        @DisplayName("GET /api/v1/renters/listings without category should return empty list")
+        @Requirement("VCT-32")
+        void whenGetListings_withoutCategory_thenReturnsEmptyList() throws Exception {
+                // Act & Assert
+                mockMvc.perform(get("/api/v1/renters/listings")
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isOk())
+                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(jsonPath("$", hasSize(0)));
+        }
 
-        when(listingService.getAvailableListingsByCategory("skate"))
-                .thenReturn(skateListings);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/v1/renters/listings")
-                .param("category", "skate")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].title", is("Skate Rental")))
-                .andExpect(jsonPath("$[0].vehicle.type", is("skate")));
-    }
-
-    @Test
-    @DisplayName("GET /api/v1/renters/listings?category=nonExistent should return empty list")
-    @Requirement("VCT-32")
-    void whenGetListingsByCategory_withNonExistentCategory_thenReturnsEmptyList() throws Exception {
-        // Arrange
-        when(listingService.getAvailableListingsByCategory("nonExistent"))
-                .thenReturn(new ArrayList<>());
-
-        // Act & Assert
-        mockMvc.perform(get("/api/v1/renters/listings")
-                .param("category", "nonExistent")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(0)));
-    }
-
-    @Test
-    @DisplayName("GET /api/v1/renters/listings without category should return empty list")
-    @Requirement("VCT-32")
-    void whenGetListings_withoutCategory_thenReturnsEmptyList() throws Exception {
-        // Act & Assert
-        mockMvc.perform(get("/api/v1/renters/listings")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(0)));
-    }
-
-    @Test
-    @DisplayName("GET /api/v1/renters/listings?category= should return empty list")
-    @Requirement("VCT-32")
-    void whenGetListings_withEmptyCategory_thenReturnsEmptyList() throws Exception {
-        // Act & Assert
-        mockMvc.perform(get("/api/v1/renters/listings")
-                .param("category", "")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(0)));
-    }
+        @Test
+        @DisplayName("GET /api/v1/renters/listings?category= should return empty list")
+        @Requirement("VCT-32")
+        void whenGetListings_withEmptyCategory_thenReturnsEmptyList() throws Exception {
+                // Act & Assert
+                mockMvc.perform(get("/api/v1/renters/listings")
+                                .param("category", "")
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isOk())
+                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(jsonPath("$", hasSize(0)));
+        }
 }

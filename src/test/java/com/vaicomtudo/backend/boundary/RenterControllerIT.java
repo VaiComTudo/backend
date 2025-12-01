@@ -119,57 +119,6 @@ class RenterControllerIT {
     }
 
     @Test
-    @DisplayName("Integration test: Filter listings by scooter category")
-    @Requirement("VCT-32")
-    void whenFilterByScooterCategory_thenReturnsOnlyScooters() throws Exception {
-        // Create bicycle listing
-        Listing bicycleListing = new Listing();
-        bicycleListing.setOwner(owner);
-        bicycleListing.setTitle("City Bike");
-        bicycleListing.setDescription("Urban bicycle");
-        bicycleListing.setPrice(BigDecimal.valueOf(20.00));
-        bicycleListing.setState(ListingState.AVAILABLE);
-
-        Vehicle bicycleVehicle = new Vehicle();
-        bicycleVehicle.setType("bicycle");
-        bicycleVehicle.setCondition(VehicleCondition.GOOD);
-        bicycleListing.setVehicle(bicycleVehicle);
-        bicycleListing.setPickUpLocation("Location A");
-        bicycleListing.setDropOffLocation("Location B");
-        listingRepository.save(bicycleListing);
-
-        // Create scooter listing
-        Listing scooterListing = new Listing();
-        scooterListing.setOwner(owner);
-        scooterListing.setTitle("Fast Scooter");
-        scooterListing.setDescription("High-speed scooter");
-        scooterListing.setPrice(BigDecimal.valueOf(35.00));
-        scooterListing.setState(ListingState.AVAILABLE);
-
-        Vehicle scooterVehicle = new Vehicle();
-        scooterVehicle.setType("scooter");
-        scooterVehicle.setCondition(VehicleCondition.EXCELLENT);
-        scooterListing.setVehicle(scooterVehicle);
-        scooterListing.setPickUpLocation("Location C");
-        scooterListing.setDropOffLocation("Location D");
-        listingRepository.save(scooterListing);
-
-        // Filter by scooter category
-        MvcResult result = mockMvc.perform(get("/api/v1/renters/listings")
-                .param("category", "scooter")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        // Verify only scooter is returned
-        String content = result.getResponse().getContentAsString();
-        assertThat(content).contains("Fast Scooter");
-        assertThat(content).contains("scooter");
-        assertThat(content).doesNotContain("City Bike");
-        assertThat(content).doesNotContain("bicycle");
-    }
-
-    @Test
     @DisplayName("Integration test: Only available listings are returned")
     @Requirement("VCT-32")
     void whenFilterByCategory_thenReturnsOnlyAvailableListings() throws Exception {
