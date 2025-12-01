@@ -16,13 +16,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Transactional;
 
 import tools.jackson.databind.ObjectMapper;
 import com.vaicomtudo.backend.data.entity.Account;
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.data.entity.ListingState;
+import com.vaicomtudo.backend.data.entity.Role;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
@@ -30,7 +33,6 @@ import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
 import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
-import jakarta.persistence.EntityManager;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -44,9 +46,6 @@ class OwnerControllerIT {
 
     @Autowired
     private ListingRepository listingRepository;
-
-    @Autowired
-    private EntityManager entityManager;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -68,16 +67,18 @@ class OwnerControllerIT {
         owner = new User();
         owner.setAccount(account);
         owner.setBirthdate(LocalDate.of(1990, 1, 1));
+        owner.setRating(0.0);
+        owner.setRole(Role.NORMAL_USER);
         owner = userRepository.save(owner);
     }
 
     @Test
     @DisplayName("Integration test: POST and GET listings flow")
     @Requirement("VCT-48")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
     void whenCreateAndRetrieveListings_thenWorkEndToEnd() throws Exception {
         // Create first listing
         Listing listing1 = new Listing();
-        listing1.setOwner(owner);
         listing1.setTitle("Integration Test Item 1");
         listing1.setDescription("First test item");
         listing1.setPrice(BigDecimal.valueOf(50.00));
@@ -98,11 +99,8 @@ class OwnerControllerIT {
             .andExpect(jsonPath("$.title").value("Integration Test Item 1"))
             .andExpect(jsonPath("$.price").value(50.00));
 
-        entityManager.flush();
-
         // Create second listing
         Listing listing2 = new Listing();
-        listing2.setOwner(owner);
         listing2.setTitle("Integration Test Item 2");
         listing2.setDescription("Second test item");
         listing2.setPrice(BigDecimal.valueOf(75.00));
@@ -123,8 +121,6 @@ class OwnerControllerIT {
             .andExpect(jsonPath("$.title").value("Integration Test Item 2"))
             .andExpect(jsonPath("$.price").value(75.00));
 
-        entityManager.flush();
-
         // Retrieve all listings
         MvcResult result = mockMvc.perform(get("/api/v1/owners/{id}/listings", owner.getId())
                 .param("id", owner.getId().toString())
@@ -141,10 +137,11 @@ class OwnerControllerIT {
     @Test
     @DisplayName("Integration test: Verify listing is persisted in database")
     @Requirement("VCT-48")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    @Transactional
     void whenCreateListing_thenListingExistsInDatabase() throws Exception {
         // Arrange
         Listing listing = new Listing();
-        listing.setOwner(owner);
         listing.setTitle("Database Test Item");
         listing.setDescription("Testing persistence");
         listing.setPrice(BigDecimal.valueOf(99.99));
@@ -164,8 +161,6 @@ class OwnerControllerIT {
                 .content(objectMapper.writeValueAsString(listing)))
             .andExpect(status().isCreated());
 
-        entityManager.flush();
-
         // Assert - Verify in database
         User updatedOwner = userRepository.findById(owner.getId()).orElseThrow();
         assertThat(updatedOwner.getListings()).hasSize(1);
@@ -176,13 +171,74 @@ class OwnerControllerIT {
     }
 
     @Test
+    @DisplayName("Integration test: POST without proper role should return 403")
+    @Requirement("VCT-80")
+    @WithMockUser(username = "test@email.com", roles = {"ADMIN"})
+    void whenAddListing_withoutNormalUserRole_thenReturns403() throws Exception {
+        Listing listing = new Listing();
+        listing.setTitle("Test Item");
+        listing.setDescription("Test Description");
+        listing.setPrice(BigDecimal.valueOf(50.00));
+        listing.setState(ListingState.AVAILABLE);
+
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("Car");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        listing.setVehicle(vehicle);
+        listing.setPickUpLocation("Test Pickup");
+        listing.setDropOffLocation("Test Dropoff");
+
+        mockMvc.perform(post("/api/v1/owners/{id}/listings", owner.getId())
+                .param("id", owner.getId().toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(listing)))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Integration test: GET without proper role should return 403")
+    @Requirement("VCT-80")
+    @WithMockUser(username = "test@email.com", roles = {"ADMIN"})
+    void whenGetListings_withoutNormalUserRole_thenReturns403() throws Exception {
+        mockMvc.perform(get("/api/v1/owners/{id}/listings", owner.getId())
+                .param("id", owner.getId().toString())
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Integration test: POST without authentication should return 401")
+    @Requirement("VCT-80")
+    void whenAddListing_withoutAuthentication_thenReturns401() throws Exception {
+        Listing listing = new Listing();
+        listing.setTitle("Test Item");
+        listing.setDescription("Test Description");
+        listing.setPrice(BigDecimal.valueOf(50.00));
+        listing.setState(ListingState.AVAILABLE);
+
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("Car");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        listing.setVehicle(vehicle);
+        listing.setPickUpLocation("Test Pickup");
+        listing.setDropOffLocation("Test Dropoff");
+
+        mockMvc.perform(post("/api/v1/owners/{id}/listings", owner.getId())
+                .param("id", owner.getId().toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(listing)))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("Integration test: Verify user-listing relationship integrity")
     @Requirement("VCT-48")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    @Transactional
     void whenCreateMultipleListings_thenAllBelongToSameOwner() throws Exception {
         // Create multiple listings
         for (int i = 1; i <= 3; i++) {
             Listing listing = new Listing();
-            listing.setOwner(owner);
             listing.setTitle("Item " + i);
             listing.setDescription("Description " + i);
             listing.setPrice(BigDecimal.valueOf(50.00 * i));
@@ -200,8 +256,6 @@ class OwnerControllerIT {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(listing)))
                 .andExpect(status().isCreated());
-
-            entityManager.flush();
         }
 
         // Verify all listings belong to owner

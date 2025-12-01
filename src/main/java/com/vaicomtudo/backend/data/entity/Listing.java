@@ -25,6 +25,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 @Entity
 @NoArgsConstructor
@@ -39,6 +40,7 @@ public class Listing {
 
     @ManyToOne
     @JoinColumn(name = "owner_id")
+    @JsonBackReference
     private User owner;
 
     @Column(nullable = false)

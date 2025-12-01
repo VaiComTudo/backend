@@ -29,6 +29,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @AllArgsConstructor
@@ -65,6 +66,7 @@ public class User implements UserDetails {
 
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private Set<Listing> listings = new HashSet<>();
 
     // convenience helper

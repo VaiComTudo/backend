@@ -24,12 +24,17 @@ public class ListingService {
     }
 
     public Listing saveListing(Listing listing, UUID id) {
-        if (!listing.getOwner().getId().equals(id)) {
+        // Check if owner is already set and if it matches the id parameter
+        if (listing.getOwner() != null && !listing.getOwner().getId().equals(id)) {
             throw new MismatchIDException();
         }
-        if (userRepository.findById(id).isEmpty()) {
-            throw new IDNotFoundException();
-        }
+
+        // Fetch the user from the database
+        User owner = userRepository.findById(id)
+            .orElseThrow(() -> new IDNotFoundException());
+
+        // Use the convenience helper method to maintain bidirectional relationship
+        owner.addListing(listing);
 
         return listingRepository.save(listing);
     }

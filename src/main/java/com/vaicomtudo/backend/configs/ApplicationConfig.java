@@ -30,6 +30,7 @@ public class ApplicationConfig {
     @Bean
     AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService());
+        authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
 
@@ -38,6 +39,7 @@ public class ApplicationConfig {
         return config.getAuthenticationManager();
     }
 
+    @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
