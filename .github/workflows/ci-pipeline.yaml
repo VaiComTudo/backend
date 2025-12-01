@@ -46,23 +46,11 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      - name: Start Frontend Server in Background
+      - name: Start Frontend Server
         working-directory: ./frontend
-        run: nohup npm run dev &
-
-      - name: Wait for Frontend to be Ready
         run: |
-          echo "Waiting for frontend to start..."
-          for i in {1..60}; do
-            if curl -s http://localhost:5173 > /dev/null; then
-              echo "Frontend is ready at http://localhost:5173"
-              exit 0
-            fi
-            echo "  Attempt $i/60 - waiting..."
-            sleep 2
-          done
-          echo "Frontend failed to start within 120 seconds"
-          exit 1
+          npm run dev &
+          npx wait-on http://localhost:5173 --timeout 60000
 
       - name: Run Cucumber E2E Tests
         run: mvn test -Dtest=CucumberTestRunner
