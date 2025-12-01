@@ -52,6 +52,9 @@ jobs:
       - name: Build and Run Tests
         run: mvn clean verify -B
 
+      - name: Run Cucumber E2E Tests
+        run: mvn test -Dtest=CucumberTestRunner
+
       - name: Cache SonarQube packages
         uses: actions/cache@v4
         with:
