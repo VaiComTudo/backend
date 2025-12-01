@@ -3,7 +3,6 @@ package com.vaicomtudo.backend.service;
 import java.time.LocalDate;
 import java.time.Period;
 
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +21,6 @@ public class AuthenticationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final AuthenticationManager authenticationManager;
 
     public AuthenticationResponse register(RegisterRequest request, Role role) {
 

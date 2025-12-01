@@ -31,7 +31,7 @@ public class ListingService {
 
         // Fetch the user from the database
         User owner = userRepository.findById(id)
-            .orElseThrow(() -> new IDNotFoundException());
+            .orElseThrow(IDNotFoundException::new);
 
         // Use the convenience helper method to maintain bidirectional relationship
         owner.addListing(listing);
