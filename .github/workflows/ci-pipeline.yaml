@@ -20,6 +20,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: temurin
+          cache: maven
+
+      - name: Build and Run Tests
+        run: mvn clean verify -B
+
       - name: Checkout frontend
         uses: actions/checkout@v4
         with:
@@ -30,7 +40,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install Frontend Dependencies
         working-directory: ./frontend
@@ -41,16 +51,6 @@ jobs:
         run: |
           npm run dev &
           npx wait-on http://localhost:5173 --timeout 60000
-
-      - name: Set up JDK ${{ matrix.java-version }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ matrix.java-version }}
-          distribution: temurin
-          cache: maven
-
-      - name: Build and Run Tests
-        run: mvn clean verify -B
 
       - name: Run Cucumber E2E Tests
         run: mvn test -Dtest=CucumberTestRunner
