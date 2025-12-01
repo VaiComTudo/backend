@@ -40,6 +40,11 @@ public class RegistrationSteps {
     public void i_navigate_to_the_registration_page() {
         driver.get(frontendUrl + "/register");
 
+        // Debug: Print page source and current URL
+        System.out.println("Current URL: " + driver.getCurrentUrl());
+        System.out.println("Page title: " + driver.getTitle());
+        System.out.println("Page source preview: " + driver.getPageSource().substring(0, Math.min(500, driver.getPageSource().length())));
+
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         wait.until(ExpectedConditions.presenceOfElementLocated(By.id("register-form")));
     }
