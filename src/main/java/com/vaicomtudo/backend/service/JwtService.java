@@ -17,13 +17,15 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 @Service
+@NoArgsConstructor
 @AllArgsConstructor
 public class JwtService {
 
     @Value("${jwt.secret}")
-    private final String SECRET_KEY;
+    private String secretKey;
 
     public String getUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -68,7 +70,7 @@ public class JwtService {
     }
 
     private SecretKey getSecretKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
