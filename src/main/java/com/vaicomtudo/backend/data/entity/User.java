@@ -26,6 +26,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -37,6 +38,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 @EqualsAndHashCode(exclude = {"listings", "defaultAvailability"})
 @Data
 @Table(name = "users")
+@Builder
 public class User implements UserDetails {
 
     @Id
@@ -62,11 +64,13 @@ public class User implements UserDetails {
         name = "user_availability",
         joinColumns = @JoinColumn(name = "user_id")
     )
+    @Builder.Default
     private Set<AvailabilityPeriod> defaultAvailability = new HashSet<>();
 
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
+    @Builder.Default
     private Set<Listing> listings = new HashSet<>();
 
     // convenience helper
