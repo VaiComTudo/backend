@@ -20,6 +20,28 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          repository: VaiComTudo/frontend
+          path: frontend
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Start Frontend Server
+        working-directory: ./frontend
+        run: |
+          npm run dev &
+          npx wait-on http://localhost:5173 --timeout 60000
+
       - name: Set up JDK ${{ matrix.java-version }}
         uses: actions/setup-java@v4
         with:
