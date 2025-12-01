@@ -33,8 +33,8 @@ public class RenterController {
             return ResponseEntity.ok(listings);
         }
 
-        // Se não houver categoria, retorna lista vazia ou todos os disponíveis
-        // Por enquanto, retornamos lista vazia se não houver categoria especificada
-        return ResponseEntity.ok(List.of());
+        // Se não houver categoria, retorna todos os listings disponíveis
+        List<Listing> listings = listingService.getAllAvailableListings();
+        return ResponseEntity.ok(listings);
     }
 }

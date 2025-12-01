@@ -49,4 +49,8 @@ public class ListingService {
     public List<Listing> getAvailableListingsByCategory(String category) {
         return listingRepository.findByStateAndVehicleType(ListingState.AVAILABLE, category);
     }
+
+    public List<Listing> getAllAvailableListings() {
+        return listingRepository.findByState(ListingState.AVAILABLE);
+    }
 }
