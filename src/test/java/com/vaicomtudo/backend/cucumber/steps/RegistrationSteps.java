@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -76,7 +77,7 @@ public class RegistrationSteps {
 
         wait.until(driver -> {
             String currentUrl = driver.getCurrentUrl();
-            boolean isRedirected = currentUrl.contains("/login");
+            boolean isRedirected = currentUrl.contains("/explore");
             boolean hasError = !driver.findElements(By.id("register-error")).isEmpty();
             return isRedirected || hasError;
         });
@@ -88,10 +89,10 @@ public class RegistrationSteps {
                 "User with email " + testEmail + " should be created in the database");
     }
 
-    @Then("I should be redirected to the login page")
+    @And("I should be redirected to the dashboard page")
     public void i_should_be_redirected() {
         String currentUrl = driver.getCurrentUrl();
-        assertTrue(currentUrl.contains("/login"),
+        assertTrue(currentUrl.contains("/explore"),
                 "Should be redirected to login page, but current URL is: " + currentUrl);
     }
 }

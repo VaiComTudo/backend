@@ -171,4 +171,11 @@ public class AuthenticationControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.token").exists());
     }
+
+    @Test
+    @DisplayName("")
+    @Requirement("VCT-81")
+    void test() {
+        
+    }
 }

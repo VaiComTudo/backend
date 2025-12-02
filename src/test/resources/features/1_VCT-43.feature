@@ -13,5 +13,5 @@ Feature: User Management and Authentication
 		And I provide my email "newuser@example.com", password "SecurePass123", name "John Doe", and birthdate "2000-01-01"
 		And I submit the registration form
 		Then my account is created in the system
-		And I should be redirected to the login page
+		And I should be redirected to the dashboard page
 		
