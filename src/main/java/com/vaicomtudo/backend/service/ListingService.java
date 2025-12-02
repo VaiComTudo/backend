@@ -1,11 +1,13 @@
 package com.vaicomtudo.backend.service;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
 import com.vaicomtudo.backend.data.entity.Listing;
+import com.vaicomtudo.backend.data.entity.ListingState;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
@@ -47,5 +49,13 @@ public class ListingService {
         User user = userRepository.findById(id).get();
 
         return user.getListings();
+    }
+
+    public List<Listing> getAvailableListingsByCategory(String category) {
+        return listingRepository.findByStateAndVehicleType(ListingState.AVAILABLE, category);
+    }
+
+    public List<Listing> getAllAvailableListings() {
+        return listingRepository.findByState(ListingState.AVAILABLE);
     }
 }

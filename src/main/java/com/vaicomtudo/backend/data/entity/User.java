@@ -33,9 +33,10 @@ import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
+@Table(name = "app_user")
 @AllArgsConstructor
 @NoArgsConstructor
-@EqualsAndHashCode(exclude = {"listings", "defaultAvailability"})
+@EqualsAndHashCode(exclude = { "listings", "defaultAvailability" })
 @Data
 @Table(name = "users")
 @Builder
@@ -66,7 +67,6 @@ public class User implements UserDetails {
     )
     @Builder.Default
     private Set<AvailabilityPeriod> defaultAvailability = new HashSet<>();
-
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
