@@ -92,10 +92,10 @@ public class LoginSteps {
 
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
-        wait.until(driver -> {
-            String currentUrl = driver.getCurrentUrl();
+        wait.until(d -> {
+            String currentUrl = d.getCurrentUrl();
             boolean isRedirected = currentUrl.contains("/explore");
-            boolean hasError = !driver.findElements(By.id("login-error")).isEmpty();
+            boolean hasError = !d.findElements(By.id("login-error")).isEmpty();
             return isRedirected || hasError;
         });
     }
