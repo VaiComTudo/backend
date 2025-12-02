@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.Period;
 
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -64,7 +65,8 @@ public class AuthenticationService {
         authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
-        User user = userRepository.findByAccountEmail(request.getEmail()).orElseThrow();
+        User user = userRepository.findByAccountEmail(request.getEmail())
+            .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
         String jwtToken = jwtService.generateToken(user);
         return AuthenticationResponse.builder()
             .token(jwtToken)

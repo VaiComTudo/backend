@@ -21,8 +21,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.NoSuchElementException;
-
 import com.vaicomtudo.backend.auth.AuthenticationRequest;
 import com.vaicomtudo.backend.auth.AuthenticationResponse;
 import com.vaicomtudo.backend.auth.RegisterRequest;
@@ -207,7 +205,7 @@ public class AuthenticationServiceTest {
         when(userRepository.findByAccountEmail("nonexistent@email.com"))
             .thenReturn(Optional.empty());
 
-        assertThrows(NoSuchElementException.class,
+        assertThrows(BadCredentialsException.class,
             () -> authenticationService.authenticate(request));
 
         verify(authenticationManager).authenticate(any());
