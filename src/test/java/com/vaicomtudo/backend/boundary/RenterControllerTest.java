@@ -17,9 +17,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -32,8 +33,8 @@ import com.vaicomtudo.backend.service.ListingService;
 
 import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
 
-@WebMvcTest(RenterController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@SpringBootTest
+@AutoConfigureMockMvc
 class RenterControllerTest {
 
         @Autowired
@@ -69,6 +70,7 @@ class RenterControllerTest {
         @Test
         @DisplayName("GET /api/v1/renters/listings?category=bicycle should return only bicycle listings")
         @Requirement("VCT-32")
+        @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
         void whenGetListingsByCategory_withBicycleCategory_thenReturnsBicycleListings() throws Exception {
                 // Arrange
                 List<Listing> bicycleListings = new ArrayList<>();
@@ -91,6 +93,7 @@ class RenterControllerTest {
         @Test
         @DisplayName("GET /api/v1/renters/listings?category=skate should return only skate listings")
         @Requirement("VCT-32")
+        @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
         void whenGetListingsByCategory_withSkateCategory_thenReturnsSkateListings() throws Exception {
                 // Arrange
                 Listing skateListing = new Listing();
@@ -128,6 +131,7 @@ class RenterControllerTest {
         @Test
         @DisplayName("GET /api/v1/renters/listings?category=nonExistent should return empty list")
         @Requirement("VCT-32")
+        @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
         void whenGetListingsByCategory_withNonExistentCategory_thenReturnsEmptyList() throws Exception {
                 // Arrange
                 when(listingService.getAvailableListingsByCategory("nonExistent"))
@@ -145,6 +149,7 @@ class RenterControllerTest {
         @Test
         @DisplayName("GET /api/v1/renters/listings without category should return empty list")
         @Requirement("VCT-32")
+        @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
         void whenGetListings_withoutCategory_thenReturnsEmptyList() throws Exception {
                 // Act & Assert
                 mockMvc.perform(get("/api/v1/renters/listings")
@@ -157,6 +162,7 @@ class RenterControllerTest {
         @Test
         @DisplayName("GET /api/v1/renters/listings?category= should return empty list")
         @Requirement("VCT-32")
+        @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
         void whenGetListings_withEmptyCategory_thenReturnsEmptyList() throws Exception {
                 // Act & Assert
                 mockMvc.perform(get("/api/v1/renters/listings")

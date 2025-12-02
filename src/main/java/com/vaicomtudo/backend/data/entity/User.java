@@ -33,7 +33,6 @@ import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
-@Table(name = "app_user")
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode(exclude = { "listings", "defaultAvailability" })
