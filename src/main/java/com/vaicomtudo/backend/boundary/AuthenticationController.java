@@ -37,6 +37,7 @@ public class AuthenticationController {
     public ResponseEntity<AuthenticationResponse> authenticate(
         @RequestBody AuthenticationRequest request
     ) {
+        log.info("Login request for email={}", request.getEmail());
         return ResponseEntity.ok(authenticationService.authenticate(request));
     }
 }
