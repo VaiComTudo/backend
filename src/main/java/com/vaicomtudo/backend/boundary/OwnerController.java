@@ -11,15 +11,15 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
+
 @RestController
 @RequestMapping("/api/v1/owners")
-@CrossOrigin(origins = "*")
 public class OwnerController {
 
     private ListingService listingService;
@@ -28,6 +28,7 @@ public class OwnerController {
         this.listingService = listingService;
     }
 
+    @PreAuthorize("hasRole('NORMAL_USER')")
     @PostMapping("/{id}/listings")
     public ResponseEntity<Listing> addListing(@PathVariable UUID id, @RequestBody Listing listing) {
         
@@ -35,6 +36,7 @@ public class OwnerController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PreAuthorize("hasRole('NORMAL_USER')")
     @GetMapping("/{id}/listings")
     public ResponseEntity<Set<Listing>> getListings(@PathVariable UUID id) {
         return ResponseEntity.ok(listingService.getListings(id));

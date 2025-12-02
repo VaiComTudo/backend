@@ -9,13 +9,12 @@ import com.vaicomtudo.backend.service.ListingService;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/api/v1/renters")
-@CrossOrigin(origins = "*")
 public class RenterController {
 
     private ListingService listingService;
@@ -25,6 +24,7 @@ public class RenterController {
     }
 
     @GetMapping("/listings")
+    @PreAuthorize("hasRole('NORMAL_USER')")
     public ResponseEntity<List<Listing>> getAvailableListingsByCategory(
             @RequestParam(required = false) String category) {
 

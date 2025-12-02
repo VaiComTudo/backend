@@ -30,6 +30,43 @@ jobs:
       - name: Build and Run Tests
         run: mvn clean verify -B
 
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          repository: VaiComTudo/frontend
+          ref: ${{ github.head_ref || github.ref_name }}
+          path: frontend
+          token: ${{ secrets.FRONTEND_ACCESS_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Start Frontend Server
+        working-directory: ./frontend
+        run: |
+          npm run dev &
+          npx wait-on http://localhost:5173 --timeout 60000
+        env:
+          VITE_API_BASE_URL: http://localhost:8080/api/v1
+
+      - name: Run Cucumber E2E Tests
+        run: mvn test -Dtest=CucumberTestRunner
+
+      - name: Import Cucumber Results to Xray
+        if: success() || failure()
+        run: |
+          chmod +x scripts/import-cucumber-results.sh
+          ./scripts/import-cucumber-results.sh target/cucumber.json VCT-80
+        env:
+          XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
+          XRAY_CLIENT_SECRET: ${{ secrets.XRAY_CLIENT_SECRET }}
+
       - name: Cache SonarQube packages
         uses: actions/cache@v4
         with:
@@ -61,12 +98,13 @@ jobs:
           min-coverage-overall: 80
           min-coverage-changed-files: 80
 
-      - name: Import test results to Xray
+      - name: Import test results to Xray (excluding Cucumber)
+        if: success() || failure()
         uses: mikepenz/xray-action@v3
         with:
           username: ${{ secrets.XRAY_CLIENT_ID }}
           password: ${{ secrets.XRAY_CLIENT_SECRET }}
           testFormat: "junit"
-          testPaths: "**/TEST-junit-jupiter.xml"
+          testPaths: "**/surefire-reports/TEST-*.xml"
           testExecKey: "VCT-62"
           projectKey: "VCT"
