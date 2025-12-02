@@ -75,8 +75,8 @@ jobs:
       - name: Import Cucumber Results to Xray
         if: success() || failure()
         run: |
-          echo token=$(curl -H "Content-Type: application/json" -X POST --data @"cloud_auth.json" https://xray.cloud.getxray.app/api/v2/authenticate| tr -d '"') >> $GITHUB_ENV
-          curl -X POST -H "Authorization: Bearer ${{ env.token }}"  -F info=@test_exec.json -F results=@"report.json" "https://xray.cloud.getxray.app/api/v2/import/execution/cucumber/multipart"
+          chmod +x scripts/import-cucumber-results.sh
+          ./scripts/import-cucumber-results.sh target/cucumber.json
         env:
           XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
           XRAY_CLIENT_SECRET: ${{ secrets.XRAY_CLIENT_SECRET }}
