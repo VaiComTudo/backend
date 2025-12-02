@@ -19,7 +19,6 @@ fi
 
 # Get parameters
 CUCUMBER_JSON="${1:-target/cucumber.json}"
-TEST_EXEC_KEY="${2:-}"
 
 if [ ! -f "$CUCUMBER_JSON" ]; then
     echo "Cucumber JSON file not found: $CUCUMBER_JSON"
@@ -27,9 +26,6 @@ if [ ! -f "$CUCUMBER_JSON" ]; then
 fi
 
 echo "Importing Cucumber results from: $CUCUMBER_JSON"
-if [ -n "$TEST_EXEC_KEY" ]; then
-    echo "Test Execution Key: $TEST_EXEC_KEY"
-fi
 
 # Create temporary auth file
 AUTH_FILE=$(mktemp)
@@ -55,9 +51,6 @@ echo "✓ Authentication successful"
 
 # Build the import URL
 IMPORT_URL="$BASE_URL/api/v2/import/execution/cucumber"
-if [ -n "$TEST_EXEC_KEY" ]; then
-    IMPORT_URL="${IMPORT_URL}?testExecKey=$TEST_EXEC_KEY"
-fi
 
 # Import results
 echo "Uploading test results..."
