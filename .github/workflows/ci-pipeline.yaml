@@ -89,12 +89,13 @@ jobs:
           min-coverage-overall: 80
           min-coverage-changed-files: 80
 
-      - name: Import test results to Xray
+      - name: Import test results to Xray (excluding Cucumber)
+        if: success() || failure()
         uses: mikepenz/xray-action@v3
         with:
           username: ${{ secrets.XRAY_CLIENT_ID }}
           password: ${{ secrets.XRAY_CLIENT_SECRET }}
           testFormat: "junit"
-          testPaths: "**/TEST-junit-jupiter.xml"
+          testPaths: "**/surefire-reports/TEST-*.xml"
           testExecKey: "VCT-62"
           projectKey: "VCT"
