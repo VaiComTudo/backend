@@ -58,6 +58,15 @@ jobs:
       - name: Run Cucumber E2E Tests
         run: mvn test -Dtest=CucumberTestRunner
 
+      - name: Import Cucumber Results to Xray
+        if: success() || failure()
+        run: |
+          chmod +x scripts/import-cucumber-results.sh
+          ./scripts/import-cucumber-results.sh target/cucumber.json VCT-80
+        env:
+          XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
+          XRAY_CLIENT_SECRET: ${{ secrets.XRAY_CLIENT_SECRET }}
+
       - name: Cache SonarQube packages
         uses: actions/cache@v4
         with:
