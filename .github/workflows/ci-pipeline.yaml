@@ -30,11 +30,25 @@ jobs:
       - name: Build and Run Tests
         run: mvn clean verify -B
 
+      - name: Determine frontend ref (use head ref or fallback to dev)
+        id: determine_frontend_ref
+        run: |
+          # Set initial target from the workflow context
+          echo "TARGET_REF=${{ github.head_ref || github.ref_name }}" >> $GITHUB_ENV
+          echo "Checking remote for branch $TARGET_REF..."
+          # Check remote branch existence using the access token
+          if git ls-remote --heads https://x-access-token:${{ secrets.FRONTEND_ACCESS_TOKEN }}@github.com/VaiComTudo/frontend.git "$TARGET_REF" | grep -q "$TARGET_REF"; then
+            echo "Found branch $TARGET_REF, using it."
+          else
+            echo "Branch $TARGET_REF not found in remote; falling back to 'dev'."
+            echo "TARGET_REF=dev" >> $GITHUB_ENV
+          fi
+
       - name: Checkout frontend
         uses: actions/checkout@v4
         with:
           repository: VaiComTudo/frontend
-          ref: ${{ github.head_ref || github.ref_name }}
+          ref: ${{ env.TARGET_REF }}
           path: frontend
           token: ${{ secrets.FRONTEND_ACCESS_TOKEN }}
 
@@ -60,13 +74,16 @@ jobs:
 
       - name: Import Cucumber Results to Xray
         if: success() || failure()
-        run: |
-          chmod +x scripts/import-cucumber-results.sh
-          ./scripts/import-cucumber-results.sh target/cucumber.json VCT-80
-        env:
-          XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
-          XRAY_CLIENT_SECRET: ${{ secrets.XRAY_CLIENT_SECRET }}
-
+        uses: mikepenz/xray-action@v3
+        with:
+          username: ${{ secrets.XRAY_CLIENT_ID }}
+          password: ${{ secrets.XRAY_CLIENT_SECRET }}
+          testFormat: "cucumber"
+          testPaths: "**target/cucumber.json"
+          testExecKey: "VCT-62"
+          testPlanKey: "VCT-61"
+          projectKey: "VCT"
+          
       - name: Cache SonarQube packages
         uses: actions/cache@v4
         with:
@@ -107,4 +124,5 @@ jobs:
           testFormat: "junit"
           testPaths: "**/surefire-reports/TEST-*.xml"
           testExecKey: "VCT-62"
+          testPlanKey: "VCT-61"
           projectKey: "VCT"
