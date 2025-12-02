@@ -16,8 +16,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.NoSuchElementException;
+
+import com.vaicomtudo.backend.auth.AuthenticationRequest;
 import com.vaicomtudo.backend.auth.AuthenticationResponse;
 import com.vaicomtudo.backend.auth.RegisterRequest;
 import com.vaicomtudo.backend.data.entity.Account;
@@ -38,6 +44,9 @@ public class AuthenticationServiceTest {
 
     @Mock
     private JwtService jwtService;
+
+    @Mock
+    private AuthenticationManager authenticationManager;
 
     @InjectMocks
     private AuthenticationService authenticationService;
@@ -127,5 +136,82 @@ public class AuthenticationServiceTest {
         AuthenticationResponse response = authenticationService.register(request, Role.NORMAL_USER);
         assertThat(response.getToken()).isEqualTo("jwt-token");
         verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    @Requirement("VCT-81")
+    @DisplayName("Test successful authentication")
+    void testSuccessfulAuthentication() {
+        AuthenticationRequest request = AuthenticationRequest.builder()
+            .email("test@email.com")
+            .password("pass")
+            .build();
+
+        Account account = Account.builder()
+            .email("test@email.com")
+            .passwordHash("encoded")
+            .name("Test User")
+            .build();
+
+        User user = User.builder()
+            .account(account)
+            .role(Role.NORMAL_USER)
+            .birthdate(LocalDate.of(2000, 1, 1))
+            .build();
+
+        when(authenticationManager.authenticate(any()))
+            .thenReturn(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+        when(userRepository.findByAccountEmail("test@email.com"))
+            .thenReturn(Optional.of(user));
+        when(jwtService.generateToken(user)).thenReturn("jwt-token");
+
+        AuthenticationResponse response = authenticationService.authenticate(request);
+
+        assertThat(response.getToken()).isEqualTo("jwt-token");
+        verify(authenticationManager).authenticate(any());
+        verify(userRepository).findByAccountEmail("test@email.com");
+        verify(jwtService).generateToken(user);
+    }
+
+    @Test
+    @Requirement("VCT-81")
+    @DisplayName("Test authentication with invalid credentials")
+    void testAuthenticationWithInvalidCredentials() {
+        AuthenticationRequest request = AuthenticationRequest.builder()
+            .email("test@email.com")
+            .password("wrongpass")
+            .build();
+
+        when(authenticationManager.authenticate(any()))
+            .thenThrow(new BadCredentialsException("Bad credentials"));
+
+        assertThrows(BadCredentialsException.class,
+            () -> authenticationService.authenticate(request));
+
+        verify(authenticationManager).authenticate(any());
+        verify(userRepository, never()).findByAccountEmail(any());
+        verify(jwtService, never()).generateToken(any());
+    }
+
+    @Test
+    @Requirement("VCT-81")
+    @DisplayName("Test authentication with non-existent user")
+    void testAuthenticationWithNonExistentUser() {
+        AuthenticationRequest request = AuthenticationRequest.builder()
+            .email("nonexistent@email.com")
+            .password("pass")
+            .build();
+
+        when(authenticationManager.authenticate(any()))
+            .thenReturn(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+        when(userRepository.findByAccountEmail("nonexistent@email.com"))
+            .thenReturn(Optional.empty());
+
+        assertThrows(NoSuchElementException.class,
+            () -> authenticationService.authenticate(request));
+
+        verify(authenticationManager).authenticate(any());
+        verify(userRepository).findByAccountEmail("nonexistent@email.com");
+        verify(jwtService, never()).generateToken(any());
     }
 }

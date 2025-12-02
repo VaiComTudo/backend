@@ -3,9 +3,12 @@ package com.vaicomtudo.backend.service;
 import java.time.LocalDate;
 import java.time.Period;
 
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.vaicomtudo.backend.auth.AuthenticationRequest;
 import com.vaicomtudo.backend.auth.AuthenticationResponse;
 import com.vaicomtudo.backend.auth.RegisterRequest;
 import com.vaicomtudo.backend.data.entity.Account;
@@ -21,6 +24,7 @@ public class AuthenticationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
 
     public AuthenticationResponse register(RegisterRequest request, Role role) {
 
@@ -50,6 +54,17 @@ public class AuthenticationService {
         user.setRole(role);
         userRepository.save(user);
 
+        String jwtToken = jwtService.generateToken(user);
+        return AuthenticationResponse.builder()
+            .token(jwtToken)
+            .build();
+    }
+
+    public AuthenticationResponse authenticate(AuthenticationRequest request) {
+        authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+        );
+        User user = userRepository.findByAccountEmail(request.getEmail()).orElseThrow();
         String jwtToken = jwtService.generateToken(user);
         return AuthenticationResponse.builder()
             .token(jwtToken)
