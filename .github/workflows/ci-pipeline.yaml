@@ -30,11 +30,28 @@ jobs:
       - name: Build and Run Tests
         run: mvn clean verify -B
 
+      - name: Determine frontend ref (use head ref or fallback to dev)
+        id: determine_frontend_ref
+        run: |
+          TOKEN="${{ secrets.FRONTEND_ACCESS_TOKEN }}"
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/VaiComTudo/frontend/branches/${BRANCH}")
+
+          if [ "$status" -eq 200 ]; then
+            echo "TARGET_REF=$BRANCH" >> $GITHUB_ENV
+          else
+            echo "TARGET_REF=dev" >> $GITHUB_ENV
+          fi
+
       - name: Checkout frontend
         uses: actions/checkout@v4
         with:
           repository: VaiComTudo/frontend
-          ref: ${{ github.head_ref || github.ref_name }}
+          ref: ${{ env.TARGET_REF }}
           path: frontend
           token: ${{ secrets.FRONTEND_ACCESS_TOKEN }}
 
@@ -60,12 +77,15 @@ jobs:
 
       - name: Import Cucumber Results to Xray
         if: success() || failure()
-        run: |
-          chmod +x scripts/import-cucumber-results.sh
-          ./scripts/import-cucumber-results.sh target/cucumber.json VCT-80
-        env:
-          XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
-          XRAY_CLIENT_SECRET: ${{ secrets.XRAY_CLIENT_SECRET }}
+        uses: mikepenz/xray-action@v3
+        with:
+          username: ${{ secrets.XRAY_CLIENT_ID }}
+          password: ${{ secrets.XRAY_CLIENT_SECRET }}
+          testFormat: "cucumber"
+          testPaths: "**target/cucumber.json"
+          testExecKey: "VCT-62"
+          testPlanKey: "VCT-61"
+          projectKey: "VCT"
 
       - name: Cache SonarQube packages
         uses: actions/cache@v4
@@ -107,4 +127,5 @@ jobs:
           testFormat: "junit"
           testPaths: "**/surefire-reports/TEST-*.xml"
           testExecKey: "VCT-62"
+          testPlanKey: "VCT-61"
           projectKey: "VCT"
