@@ -31,6 +31,8 @@
 		<xray-junit-extensions.version>0.9.0</xray-junit-extensions.version>
 		<xray-maven-plugin.version>0.9.0</xray-maven-plugin.version>
 		<jacoco.version>0.8.14</jacoco.version>
+		<selenium.version>4.27.0</selenium.version>
+		<webdrivermanager.version>5.9.2</webdrivermanager.version>
     	<sonar.exclusions>**/SecurityConfig.java</sonar.exclusions>
 	</properties>
 	<dependencies>
@@ -144,6 +146,20 @@
 			<groupId>app.getxray</groupId>
 			<artifactId>xray-maven-plugin</artifactId>
 			<version>${xray-maven-plugin.version}</version>
+		</dependency>
+
+		<!-- Selenium for Acceptance Tests -->
+		<dependency>
+			<groupId>org.seleniumhq.selenium</groupId>
+			<artifactId>selenium-java</artifactId>
+			<version>${selenium.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.github.bonigarcia</groupId>
+			<artifactId>webdrivermanager</artifactId>
+			<version>${webdrivermanager.version}</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 

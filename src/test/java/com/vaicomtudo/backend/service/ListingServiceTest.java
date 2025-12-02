@@ -9,7 +9,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -64,7 +66,7 @@ class ListingServiceTest {
         listing.setDescription("Test Description");
         listing.setPrice(BigDecimal.valueOf(50.00));
         listing.setState(ListingState.AVAILABLE);
-        
+
         Vehicle vehicle = new Vehicle();
         vehicle.setType("Car");
         vehicle.setCondition(VehicleCondition.GOOD);
@@ -100,7 +102,7 @@ class ListingServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> listingService.saveListing(listing, differentId))
-            .isInstanceOf(MismatchIDException.class);
+                .isInstanceOf(MismatchIDException.class);
 
         verify(userRepository, never()).findById(any());
         verify(listingRepository, never()).save(any());
@@ -115,7 +117,7 @@ class ListingServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> listingService.saveListing(listing, ownerId))
-            .isInstanceOf(IDNotFoundException.class);
+                .isInstanceOf(IDNotFoundException.class);
 
         verify(userRepository, times(1)).findById(ownerId);
         verify(listingRepository, never()).save(any());
@@ -129,7 +131,7 @@ class ListingServiceTest {
         Set<Listing> listings = new HashSet<>();
         listings.add(listing);
         owner.setListings(listings);
-        
+
         when(userRepository.findById(ownerId)).thenReturn(Optional.of(owner));
 
         // Act
@@ -166,8 +168,65 @@ class ListingServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> listingService.getListings(ownerId))
-            .isInstanceOf(IDNotFoundException.class);
+                .isInstanceOf(IDNotFoundException.class);
 
         verify(userRepository, times(1)).findById(ownerId);
+    }
+
+    @Test
+    @DisplayName("getAvailableListingsByCategory should return available listings for given category")
+    @Requirement("VCT-32")
+    void whenGetAvailableListingsByCategory_withValidCategory_thenReturnListings() {
+        // Arrange
+        String category = "bicycle";
+        Listing bicycleListing = new Listing();
+        bicycleListing.setId(UUID.randomUUID());
+        bicycleListing.setOwner(owner);
+        bicycleListing.setTitle("Bicycle Rental");
+        bicycleListing.setDescription("Mountain bike");
+        bicycleListing.setPrice(BigDecimal.valueOf(25.00));
+        bicycleListing.setState(ListingState.AVAILABLE);
+
+        Vehicle bicycleVehicle = new Vehicle();
+        bicycleVehicle.setType("bicycle");
+        bicycleVehicle.setCondition(VehicleCondition.GOOD);
+        bicycleListing.setVehicle(bicycleVehicle);
+        bicycleListing.setPickUpLocation("Location A");
+        bicycleListing.setDropOffLocation("Location B");
+
+        List<Listing> availableListings = new ArrayList<>();
+        availableListings.add(bicycleListing);
+
+        when(listingRepository.findByStateAndVehicleType(ListingState.AVAILABLE, category))
+                .thenReturn(availableListings);
+
+        // Act
+        List<Listing> result = listingService.getAvailableListingsByCategory(category);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result).hasSize(1);
+        assertThat(result).contains(bicycleListing);
+        assertThat(result.get(0).getState()).isEqualTo(ListingState.AVAILABLE);
+        assertThat(result.get(0).getVehicle().getType()).isEqualTo("bicycle");
+        verify(listingRepository, times(1)).findByStateAndVehicleType(ListingState.AVAILABLE, category);
+    }
+
+    @Test
+    @DisplayName("getAvailableListingsByCategory should return empty list when no listings found")
+    @Requirement("VCT-32")
+    void whenGetAvailableListingsByCategory_withNoMatchingListings_thenReturnEmptyList() {
+        // Arrange
+        String category = "scooter";
+        when(listingRepository.findByStateAndVehicleType(ListingState.AVAILABLE, category))
+                .thenReturn(new ArrayList<>());
+
+        // Act
+        List<Listing> result = listingService.getAvailableListingsByCategory(category);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result).isEmpty();
+        verify(listingRepository, times(1)).findByStateAndVehicleType(ListingState.AVAILABLE, category);
     }
 }
