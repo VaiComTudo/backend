@@ -121,4 +121,5 @@ jobs:
           testFormat: "junit"
           testPaths: "**/surefire-reports/TEST-*.xml"
           testExecKey: "VCT-62"
+          testPlanKey: "VCT-61"
           projectKey: "VCT"
