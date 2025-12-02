@@ -88,7 +88,7 @@ public class RegistrationSteps {
                 "User with email " + testEmail + " should be created in the database");
     }
 
-    @Then("I should be redirected to the login page or dashboard")
+    @Then("I should be redirected to the login page")
     public void i_should_be_redirected() {
         String currentUrl = driver.getCurrentUrl();
         assertTrue(currentUrl.contains("/login"),
