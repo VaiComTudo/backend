@@ -74,13 +74,16 @@ jobs:
 
       - name: Import Cucumber Results to Xray
         if: success() || failure()
-        run: |
-          chmod +x scripts/import-cucumber-results.sh
-          ./scripts/import-cucumber-results.sh target/cucumber.json
-        env:
-          XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
-          XRAY_CLIENT_SECRET: ${{ secrets.XRAY_CLIENT_SECRET }}
-
+        uses: mikepenz/xray-action@v3
+        with:
+          username: ${{ secrets.XRAY_CLIENT_ID }}
+          password: ${{ secrets.XRAY_CLIENT_SECRET }}
+          testFormat: "cucumber"
+          testPaths: "**target/cucumber.json"
+          testExecKey: "VCT-62"
+          testPlanKey: "VCT-61"
+          projectKey: "VCT"
+          
       - name: Cache SonarQube packages
         uses: actions/cache@v4
         with:
