@@ -2,7 +2,6 @@ package com.vaicomtudo.backend.service;
 
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -11,8 +10,8 @@ import com.vaicomtudo.backend.data.entity.ListingState;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
-import com.vaicomtudo.backend.exception.IDNotFoundException;
-import com.vaicomtudo.backend.exception.MismatchIDException;
+import com.vaicomtudo.backend.exception.EmailNotFoundException;
+import com.vaicomtudo.backend.exception.MismatchEmailException;
 
 @Service
 public class ListingService {
@@ -25,15 +24,15 @@ public class ListingService {
         this.userRepository = userRepository;
     }
 
-    public Listing saveListing(Listing listing, UUID id) {
+    public Listing saveListing(Listing listing, String email) {
         // Check if owner is already set and if it matches the id parameter
-        if (listing.getOwner() != null && !listing.getOwner().getId().equals(id)) {
-            throw new MismatchIDException();
+        if (listing.getOwner() != null && !listing.getOwner().getAccount().getEmail().equals(email)) {
+            throw new MismatchEmailException();
         }
 
         // Fetch the user from the database
-        User owner = userRepository.findById(id)
-            .orElseThrow(IDNotFoundException::new);
+        User owner = userRepository.findByAccountEmail(email)
+            .orElseThrow(EmailNotFoundException::new);
 
         // Use the convenience helper method to maintain bidirectional relationship
         owner.addListing(listing);
@@ -41,13 +40,10 @@ public class ListingService {
         return listingRepository.save(listing);
     }
 
-    public Set<Listing> getListings(UUID id) {
-        if (userRepository.findById(id).isEmpty()) {
-            throw new IDNotFoundException();
-        }
-
-        User user = userRepository.findById(id).get();
-
+    public Set<Listing> getListings(String email) {
+        User user = userRepository.findByAccountEmail(email)
+            .orElseThrow(EmailNotFoundException::new);
+            
         return user.getListings();
     }
 

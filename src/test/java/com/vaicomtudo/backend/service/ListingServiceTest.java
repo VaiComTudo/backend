@@ -24,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.vaicomtudo.backend.data.entity.Account;
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.data.entity.ListingState;
 import com.vaicomtudo.backend.data.entity.User;
@@ -31,8 +32,8 @@ import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
-import com.vaicomtudo.backend.exception.IDNotFoundException;
-import com.vaicomtudo.backend.exception.MismatchIDException;
+import com.vaicomtudo.backend.exception.EmailNotFoundException;
+import com.vaicomtudo.backend.exception.MismatchEmailException;
 
 import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
 
@@ -50,13 +51,19 @@ class ListingServiceTest {
 
     private User owner;
     private Listing listing;
-    private UUID ownerId;
+    private String ownerEmail;
 
     @BeforeEach
     void setUp() {
-        ownerId = UUID.randomUUID();
+        ownerEmail = "owner@email.com";
+
+        Account account = new Account();
+        account.setId(UUID.randomUUID());
+        account.setEmail(ownerEmail);
+
         owner = new User();
-        owner.setId(ownerId);
+        owner.setAccount(account);
+        owner.setId(account.getId());
         owner.setListings(new HashSet<>());
 
         listing = new Listing();
@@ -76,50 +83,50 @@ class ListingServiceTest {
     }
 
     @Test
-    @DisplayName("saveListing should save listing when owner ID matches")
+    @DisplayName("saveListing should save listing when owner email matches")
     @Requirement("VCT-48")
-    void whenSaveListing_withMatchingOwnerId_thenListingSaved() {
+    void whenSaveListing_withMatchingOwnerEmail_thenListingSaved() {
         // Arrange
-        when(userRepository.findById(ownerId)).thenReturn(Optional.of(owner));
+        when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
         when(listingRepository.save(any(Listing.class))).thenReturn(listing);
 
         // Act
-        Listing savedListing = listingService.saveListing(listing, ownerId);
+        Listing savedListing = listingService.saveListing(listing, ownerEmail);
 
         // Assert
         assertThat(savedListing).isNotNull();
-        assertThat(savedListing.getOwner().getId()).isEqualTo(ownerId);
-        verify(userRepository, times(1)).findById(ownerId);
+        assertThat(savedListing.getOwner().getAccount().getEmail()).isEqualTo(ownerEmail);
+        verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
         verify(listingRepository, times(1)).save(listing);
     }
 
     @Test
-    @DisplayName("saveListing should throw MismatchIDException when owner ID does not match")
+    @DisplayName("saveListing should throw MismatchEmailException when owner email does not match")
     @Requirement("VCT-48")
-    void whenSaveListing_withMismatchedOwnerId_thenThrowException() {
+    void whenSaveListing_withMismatchedOwnerEmail_thenThrowException() {
         // Arrange
-        UUID differentId = UUID.randomUUID();
+        String differentEmail = "email2@testing.com";
 
         // Act & Assert
-        assertThatThrownBy(() -> listingService.saveListing(listing, differentId))
-                .isInstanceOf(MismatchIDException.class);
+        assertThatThrownBy(() -> listingService.saveListing(listing, differentEmail))
+                .isInstanceOf(MismatchEmailException.class);
 
-        verify(userRepository, never()).findById(any());
+        verify(userRepository, never()).findByAccountEmail(any());
         verify(listingRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("saveListing should throw IDNotFoundException when user not found")
+    @DisplayName("saveListing should throw EmailNotFoundException when user not found")
     @Requirement("VCT-48")
     void whenSaveListing_withNonExistentUser_thenThrowException() {
         // Arrange
-        when(userRepository.findById(ownerId)).thenReturn(Optional.empty());
+        when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> listingService.saveListing(listing, ownerId))
-                .isInstanceOf(IDNotFoundException.class);
+        assertThatThrownBy(() -> listingService.saveListing(listing, ownerEmail))
+                .isInstanceOf(EmailNotFoundException.class);
 
-        verify(userRepository, times(1)).findById(ownerId);
+        verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
         verify(listingRepository, never()).save(any());
     }
 
@@ -132,10 +139,10 @@ class ListingServiceTest {
         listings.add(listing);
         owner.setListings(listings);
 
-        when(userRepository.findById(ownerId)).thenReturn(Optional.of(owner));
+        when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
 
         // Act
-        Set<Listing> result = listingService.getListings(ownerId);
+        Set<Listing> result = listingService.getListings(ownerEmail);
 
         // Assert
         assertThat(result).isNotNull();
@@ -149,10 +156,10 @@ class ListingServiceTest {
     void whenGetListings_withNoListings_thenReturnEmptySet() {
         // Arrange
         owner.setListings(new HashSet<>());
-        when(userRepository.findById(ownerId)).thenReturn(Optional.of(owner));
+        when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
 
         // Act
-        Set<Listing> result = listingService.getListings(ownerId);
+        Set<Listing> result = listingService.getListings(ownerEmail);
 
         // Assert
         assertThat(result).isNotNull();
@@ -160,17 +167,17 @@ class ListingServiceTest {
     }
 
     @Test
-    @DisplayName("getListings should throw IDNotFoundException when user not found")
+    @DisplayName("getListings should throw EmailNotFoundException when user not found")
     @Requirement("VCT-48")
     void whenGetListings_withNonExistentUser_thenThrowException() {
         // Arrange
-        when(userRepository.findById(ownerId)).thenReturn(Optional.empty());
+        when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> listingService.getListings(ownerId))
-                .isInstanceOf(IDNotFoundException.class);
+        assertThatThrownBy(() -> listingService.getListings(ownerEmail))
+                .isInstanceOf(EmailNotFoundException.class);
 
-        verify(userRepository, times(1)).findById(ownerId);
+        verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
     }
 
     @Test

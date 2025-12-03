@@ -28,13 +28,15 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import tools.jackson.databind.ObjectMapper;
+
+import com.vaicomtudo.backend.data.entity.Account;
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.data.entity.ListingState;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
-import com.vaicomtudo.backend.exception.IDNotFoundException;
-import com.vaicomtudo.backend.exception.MismatchIDException;
+import com.vaicomtudo.backend.exception.EmailNotFoundException;
+import com.vaicomtudo.backend.exception.MismatchEmailException;
 import com.vaicomtudo.backend.service.ListingService;
 
 import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
@@ -54,13 +56,19 @@ class OwnerControllerTest {
 
     private User owner;
     private Listing listing;
-    private UUID ownerId;
+    private String ownerEmail;
 
     @BeforeEach
     void setUp() {
-        ownerId = UUID.randomUUID();
+        ownerEmail = "test@email.com";
+
+        Account account = new Account();
+        account.setId(UUID.randomUUID());
+        account.setEmail(ownerEmail);
+
         owner = new User();
-        owner.setId(ownerId);
+        owner.setAccount(account);
+        owner.setId(account.getId());
 
         listing = new Listing();
         listing.setId(UUID.randomUUID());
@@ -78,16 +86,16 @@ class OwnerControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/owners/{id}/listings should create listing successfully")
+    @DisplayName("POST /api/v1/owners/listings should create listing successfully")
     @Requirement("VCT-48")
     @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
     void whenAddListing_withValidData_thenReturns201() throws Exception {
         // Arrange
-        when(listingService.saveListing(any(Listing.class), eq(ownerId)))
+        when(listingService.saveListing(any(Listing.class), eq(ownerEmail)))
             .thenReturn(listing);
 
         // Act & Assert
-        mockMvc.perform(post("/api/v1/owners/{id}/listings", ownerId)
+        mockMvc.perform(post("/api/v1/owners/listings")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(listing)))
             .andExpect(status().isCreated())
@@ -99,51 +107,51 @@ class OwnerControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/owners/{id}/listings should return 400 when ID mismatch")
+    @DisplayName("POST /api/v1/owners/listings should return 400 when email mismatch")
     @Requirement("VCT-48")
     @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
-    void whenAddListing_withMismatchedId_thenReturns400() throws Exception {
+    void whenAddListing_withMismatchedEmail_thenReturns400() throws Exception {
         // Arrange
-        when(listingService.saveListing(any(Listing.class), eq(ownerId)))
-            .thenThrow(new MismatchIDException());
+        when(listingService.saveListing(any(Listing.class), eq(ownerEmail)))
+            .thenThrow(new MismatchEmailException());
 
         // Act & Assert
-        mockMvc.perform(post("/api/v1/owners/{id}/listings", ownerId)
+        mockMvc.perform(post("/api/v1/owners/listings", ownerEmail)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(listing)))
             .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("POST /api/v1/owners/{id}/listings should return 400 when user not found")
+    @DisplayName("POST /api/v1/owners/listings should return 400 when user not found")
     @Requirement("VCT-48")
     @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
     void whenAddListing_withNonExistentUser_thenReturns400() throws Exception {
         // Arrange
-        when(listingService.saveListing(any(Listing.class), eq(ownerId)))
-            .thenThrow(new IDNotFoundException());
+        when(listingService.saveListing(any(Listing.class), eq(ownerEmail)))
+            .thenThrow(new EmailNotFoundException());
 
         // Act & Assert
-        mockMvc.perform(post("/api/v1/owners/{id}/listings", ownerId)
+        mockMvc.perform(post("/api/v1/owners/listings", ownerEmail)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(listing)))
             .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("POST /api/v1/owners/{id}/listings should return 400 with invalid JSON")
+    @DisplayName("POST /api/v1/owners/listings should return 400 with invalid JSON")
     @Requirement("VCT-48")
     @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
     void whenAddListing_withInvalidJson_thenReturns400() throws Exception {
         // Act & Assert
-        mockMvc.perform(post("/api/v1/owners/{id}/listings", ownerId)
+        mockMvc.perform(post("/api/v1/owners/listings", ownerEmail)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{ invalid json }"))
             .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("GET /api/v1/owners/{id}/listings should return all listings")
+    @DisplayName("GET /api/v1/owners/listings should return all listings")
     @Requirement("VCT-48")
     @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
     void whenGetListings_withExistingUser_thenReturnsListings() throws Exception {
@@ -160,10 +168,10 @@ class OwnerControllerTest {
         listings.add(listing);
         listings.add(listing2);
 
-        when(listingService.getListings(ownerId)).thenReturn(listings);
+        when(listingService.getListings(ownerEmail)).thenReturn(listings);
 
         // Act & Assert
-        mockMvc.perform(get("/api/v1/owners/{id}/listings", ownerId)
+        mockMvc.perform(get("/api/v1/owners/listings", ownerEmail)
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -171,15 +179,15 @@ class OwnerControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/owners/{id}/listings should return empty array when no listings")
+    @DisplayName("GET /api/v1/owners/listings should return empty array when no listings")
     @Requirement("VCT-48")
     @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
     void whenGetListings_withNoListings_thenReturnsEmptyArray() throws Exception {
         // Arrange
-        when(listingService.getListings(ownerId)).thenReturn(new HashSet<>());
+        when(listingService.getListings(ownerEmail)).thenReturn(new HashSet<>());
 
         // Act & Assert
-        mockMvc.perform(get("/api/v1/owners/{id}/listings", ownerId)
+        mockMvc.perform(get("/api/v1/owners/listings", ownerEmail)
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -187,16 +195,16 @@ class OwnerControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/owners/{id}/listings should return 400 when user not found")
+    @DisplayName("GET /api/v1/owners/listings should return 400 when user not found")
     @Requirement("VCT-48")
     @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
     void whenGetListings_withNonExistentUser_thenReturns400() throws Exception {
         // Arrange
-        when(listingService.getListings(ownerId))
-            .thenThrow(new IDNotFoundException());
+        when(listingService.getListings(ownerEmail))
+            .thenThrow(new EmailNotFoundException());
 
         // Act & Assert
-        mockMvc.perform(get("/api/v1/owners/{id}/listings", ownerId)
+        mockMvc.perform(get("/api/v1/owners/listings", ownerEmail)
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound());
     }
