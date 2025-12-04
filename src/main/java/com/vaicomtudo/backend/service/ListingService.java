@@ -1,5 +1,7 @@
 package com.vaicomtudo.backend.service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -33,7 +35,7 @@ public class ListingService {
 
         // Fetch the user from the database
         User owner = userRepository.findById(id)
-            .orElseThrow(IDNotFoundException::new);
+                .orElseThrow(IDNotFoundException::new);
 
         // Use the convenience helper method to maintain bidirectional relationship
         owner.addListing(listing);
@@ -57,5 +59,35 @@ public class ListingService {
 
     public List<Listing> getAllAvailableListings() {
         return listingRepository.findByState(ListingState.AVAILABLE);
+    }
+
+    public List<Listing> getAvailableListingsByLocation(String location) {
+        // Duas coleções diferentes, uma para pickup e outra para drop off
+        List<Listing> pickUpResults = listingRepository.findByStateAndPickUpLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, location);
+        List<Listing> dropOffResults = listingRepository.findByStateAndDropOffLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, location);
+
+        // Combinar os resultados e remover duplicados usando LinkedHashSet para
+        // preservar a ordem
+        Set<Listing> combinedSet = new LinkedHashSet<>(pickUpResults);
+        combinedSet.addAll(dropOffResults);
+
+        return new ArrayList<>(combinedSet);
+    }
+
+    public List<Listing> getAvailableListingsByCategoryAndLocation(String category, String location) {
+        // Lógica igual ao getAvailableListingsByLocation, mas com categoria e
+        // localização combinadas
+        List<Listing> pickUpResults = listingRepository.findByStateAndVehicleTypeAndPickUpLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, category, location);
+        List<Listing> dropOffResults = listingRepository
+                .findByStateAndVehicleTypeAndDropOffLocationContainingIgnoreCase(
+                        ListingState.AVAILABLE, category, location);
+
+        Set<Listing> combinedSet = new LinkedHashSet<>(pickUpResults);
+        combinedSet.addAll(dropOffResults);
+
+        return new ArrayList<>(combinedSet);
     }
 }
