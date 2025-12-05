@@ -5,19 +5,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import com.vaicomtudo.backend.exception.IDNotFoundException;
-import com.vaicomtudo.backend.exception.MismatchIDException;
+import com.vaicomtudo.backend.exception.EmailNotFoundException;
+import com.vaicomtudo.backend.exception.MismatchEmailException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(MismatchIDException.class)
-    public ResponseEntity<String> handleMismatchIDException(MismatchIDException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("ID mismatch");
+    @ExceptionHandler(MismatchEmailException.class)
+    public ResponseEntity<String> handleMismatchIDException(MismatchEmailException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email mismatch");
     }
 
-    @ExceptionHandler(IDNotFoundException.class)
-    public ResponseEntity<String> handleIllegalArgumentException(IDNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("ID not found");
+    @ExceptionHandler(EmailNotFoundException.class)
+    public ResponseEntity<String> handleIllegalArgumentException(EmailNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Email not found");
     }
 }
