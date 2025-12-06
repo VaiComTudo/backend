@@ -10,6 +10,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     strategy:
       matrix:
         java-version: [21]
@@ -110,7 +112,7 @@ jobs:
 
       - name: Add Coverage to PR
         if: github.event_name == 'pull_request' && matrix.java-version == '21'
-        uses: madrapps/jacoco-report@v1.7.1
+        uses: madrapps/jacoco-report@v1.7.2
         with:
           paths: |
             ${{ github.workspace }}/target/site/jacoco/jacoco.xml
