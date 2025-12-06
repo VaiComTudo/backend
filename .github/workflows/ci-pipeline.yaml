@@ -98,13 +98,13 @@ jobs:
           restore-keys: ${{ runner.os }}-sonar
 
       - name: SonarCloud Scan
-        if: matrix.java-version == '21'
+        if: matrix.java-version == '21' && (github.event_name == 'pull_request' || github.ref == 'refs/heads/main')
         uses: SonarSource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: SonarCloud Quality Gate Check
-        if: matrix.java-version == '21'
+        if: matrix.java-version == '21' && (github.event_name == 'pull_request' || github.ref == 'refs/heads/main')
         uses: sonarsource/sonarqube-quality-gate-action@master
         with:
           pollingTimeoutSec: 600
