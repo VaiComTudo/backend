@@ -33,6 +33,7 @@
 		<jacoco.version>0.8.14</jacoco.version>
 		<selenium.version>4.27.0</selenium.version>
 		<webdrivermanager.version>5.9.2</webdrivermanager.version>
+		<sonar.organization>vaicomtudo</sonar.organization>
     	<sonar.exclusions>**/SecurityConfig.java</sonar.exclusions>
 	</properties>
 	<dependencies>
