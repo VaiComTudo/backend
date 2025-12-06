@@ -319,7 +319,397 @@ class RenterControllerAT {
         assertThat(resultsText.getText()).contains("3 item(s) encontrado(s)");
         assertThat(resultsText.getText()).doesNotContain("categoria");
 
-        // Verify all listings are present
-        assertThat(driver.findElements(By.xpath("//h3[contains(text(), 'Bike')]"))).hasSize(3);
-    }
+                // Verify all listings are present
+                assertThat(driver.findElements(By.xpath("//h3[contains(text(), 'Bike')]"))).hasSize(3);
+        }
+
+        @Test
+        @DisplayName("Acceptance Test: Renter can filter listings by location through the web interface")
+        @Requirement("VCT-33")
+        void whenRenterFiltersByLocation_thenCorrectListingsAreDisplayed() {
+                // Arrange - Create test data with different locations
+                Listing lisboaListing = new Listing();
+                lisboaListing.setOwner(owner);
+                lisboaListing.setTitle("Bike in Lisboa");
+                lisboaListing.setDescription("Great bike in Lisboa");
+                lisboaListing.setPrice(BigDecimal.valueOf(25.00));
+                lisboaListing.setState(ListingState.AVAILABLE);
+
+                Vehicle bicycleVehicle = new Vehicle();
+                bicycleVehicle.setType("Bicycle");
+                bicycleVehicle.setCondition(VehicleCondition.GOOD);
+                lisboaListing.setVehicle(bicycleVehicle);
+                lisboaListing.setPickUpLocation("Lisboa");
+                lisboaListing.setDropOffLocation("Sintra");
+                listingRepository.save(lisboaListing);
+
+                Listing portoListing = new Listing();
+                portoListing.setOwner(owner);
+                portoListing.setTitle("Scooter in Porto");
+                portoListing.setDescription("Fast scooter in Porto");
+                portoListing.setPrice(BigDecimal.valueOf(30.00));
+                portoListing.setState(ListingState.AVAILABLE);
+
+                Vehicle scooterVehicle = new Vehicle();
+                scooterVehicle.setType("Scooter");
+                scooterVehicle.setCondition(VehicleCondition.EXCELLENT);
+                portoListing.setVehicle(scooterVehicle);
+                portoListing.setPickUpLocation("Porto");
+                portoListing.setDropOffLocation("Braga");
+                listingRepository.save(portoListing);
+
+                // Act - Navigate to BrowseItems page
+                driver.get(frontendUrl + "/browse");
+
+                // Wait for page to load
+                wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("h1")));
+
+                // Wait for loading to finish
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                                By.xpath("//p[contains(text(), 'A carregar')]")));
+
+                // Wait for listings to load
+                wait.until(ExpectedConditions.or(
+                                ExpectedConditions.presenceOfElementLocated(
+                                                By.xpath("//div[contains(@style, 'grid')]")),
+                                ExpectedConditions.presenceOfElementLocated(
+                                                By.xpath("//p[contains(text(), 'Nenhum item disponível')]"))));
+
+                // Filter by Lisboa location
+                WebElement locationInput = wait.until(
+                                ExpectedConditions.presenceOfElementLocated(
+                                                By.xpath("//input[@placeholder='Digite uma localização (ex: Lisboa, Porto...)']")));
+                locationInput.clear();
+                locationInput.sendKeys("Lisboa");
+
+                WebElement searchButton = driver.findElement(
+                                By.xpath("//button[contains(text(), 'Buscar')]"));
+                searchButton.click();
+
+                // Wait for listings to update
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                                By.xpath("//p[contains(text(), 'A carregar')]")));
+
+                // Wait a bit for the results to update
+                try {
+                        Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                }
+
+                // Assert - Verify only Lisboa listing is displayed
+                assertThat(driver.findElements(By.xpath("//h3[contains(text(), 'Bike in Lisboa')]"))).hasSize(1);
+                assertThat(driver.findElements(By.xpath("//h3[contains(text(), 'Scooter in Porto')]"))).isEmpty();
+
+                // Filter by Porto location
+                locationInput = driver.findElement(
+                                By.xpath("//input[@placeholder='Digite uma localização (ex: Lisboa, Porto...)']"));
+                locationInput.clear();
+                locationInput.sendKeys("Porto");
+                searchButton = driver.findElement(By.xpath("//button[contains(text(), 'Buscar')]"));
+                searchButton.click();
+
+                // Wait for listings to update
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                                By.xpath("//p[contains(text(), 'A carregar')]")));
+
+                try {
+                        Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                }
+
+                // Assert - Verify only Porto listing is displayed
+                assertThat(driver.findElements(By.xpath("//h3[contains(text(), 'Scooter in Porto')]"))).hasSize(1);
+                assertThat(driver.findElements(By.xpath("//h3[contains(text(), 'Bike in Lisboa')]"))).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Acceptance Test: Renter can filter listings by drop-off location")
+        @Requirement("VCT-33")
+        void whenRenterFiltersByDropOffLocation_thenCorrectListingsAreDisplayed() {
+                // Arrange - Create listings with different drop-off locations
+                Listing sintraListing = new Listing();
+                sintraListing.setOwner(owner);
+                sintraListing.setTitle("Bike to Sintra");
+                sintraListing.setDescription("Bike available to Sintra");
+                sintraListing.setPrice(BigDecimal.valueOf(25.00));
+                sintraListing.setState(ListingState.AVAILABLE);
+
+                Vehicle bicycleVehicle = new Vehicle();
+                bicycleVehicle.setType("Bicycle");
+                bicycleVehicle.setCondition(VehicleCondition.GOOD);
+                sintraListing.setVehicle(bicycleVehicle);
+                sintraListing.setPickUpLocation("Lisboa");
+                sintraListing.setDropOffLocation("Sintra");
+                listingRepository.save(sintraListing);
+
+                Listing bragaListing = new Listing();
+                bragaListing.setOwner(owner);
+                bragaListing.setTitle("Scooter to Braga");
+                bragaListing.setDescription("Scooter available to Braga");
+                bragaListing.setPrice(BigDecimal.valueOf(30.00));
+                bragaListing.setState(ListingState.AVAILABLE);
+
+                Vehicle scooterVehicle = new Vehicle();
+                scooterVehicle.setType("Scooter");
+                scooterVehicle.setCondition(VehicleCondition.EXCELLENT);
+                bragaListing.setVehicle(scooterVehicle);
+                bragaListing.setPickUpLocation("Porto");
+                bragaListing.setDropOffLocation("Braga");
+                listingRepository.save(bragaListing);
+
+                // Act - Navigate to BrowseItems page
+                driver.get(frontendUrl + "/browse");
+
+                // Wait for page to load
+                wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("h1")));
+
+                // Wait for loading to finish
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                                By.xpath("//p[contains(text(), 'A carregar')]")));
+
+                // Wait for listings to load
+                wait.until(ExpectedConditions.or(
+                                ExpectedConditions.presenceOfElementLocated(
+                                                By.xpath("//div[contains(@style, 'grid')]")),
+                                ExpectedConditions.presenceOfElementLocated(
+                                                By.xpath("//p[contains(text(), 'Nenhum item disponível')]"))));
+
+                // Filter by Sintra (drop-off location)
+                WebElement locationInput = wait.until(
+                                ExpectedConditions.presenceOfElementLocated(
+                                                By.xpath("//input[@placeholder='Digite uma localização (ex: Lisboa, Porto...)']")));
+                locationInput.clear();
+                locationInput.sendKeys("Sintra");
+
+                WebElement searchButton = driver.findElement(
+                                By.xpath("//button[contains(text(), 'Buscar')]"));
+                searchButton.click();
+
+                // Wait for listings to update
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                                By.xpath("//p[contains(text(), 'A carregar')]")));
+
+                try {
+                        Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                }
+
+                // Assert - Verify only Sintra listing is displayed
+                assertThat(driver.findElements(By.xpath("//h3[contains(text(), 'Bike to Sintra')]"))).hasSize(1);
+                assertThat(driver.findElements(By.xpath("//h3[contains(text(), 'Scooter to Braga')]"))).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Acceptance Test: Renter sees empty state when no listings match location")
+        @Requirement("VCT-33")
+        void whenRenterFiltersByLocationWithNoResults_thenEmptyStateIsDisplayed() {
+                // Arrange - Create listing with specific location
+                Listing lisboaListing = new Listing();
+                lisboaListing.setOwner(owner);
+                lisboaListing.setTitle("Bike in Lisboa");
+                lisboaListing.setDescription("Great bike");
+                lisboaListing.setPrice(BigDecimal.valueOf(25.00));
+                lisboaListing.setState(ListingState.AVAILABLE);
+
+                Vehicle bicycleVehicle = new Vehicle();
+                bicycleVehicle.setType("Bicycle");
+                bicycleVehicle.setCondition(VehicleCondition.GOOD);
+                lisboaListing.setVehicle(bicycleVehicle);
+                lisboaListing.setPickUpLocation("Lisboa");
+                lisboaListing.setDropOffLocation("Sintra");
+                listingRepository.save(lisboaListing);
+
+                // Act - Navigate to BrowseItems page
+                driver.get(frontendUrl + "/browse");
+
+                // Wait for page to load
+                wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("h1")));
+
+                // Wait for loading to finish
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                                By.xpath("//p[contains(text(), 'A carregar')]")));
+
+                // Filter by non-existent location
+                WebElement locationInput = wait.until(
+                                ExpectedConditions.presenceOfElementLocated(
+                                                By.xpath("//input[@placeholder='Digite uma localização (ex: Lisboa, Porto...)']")));
+                locationInput.clear();
+                locationInput.sendKeys("Faro");
+
+                WebElement searchButton = driver.findElement(
+                                By.xpath("//button[contains(text(), 'Buscar')]"));
+                searchButton.click();
+
+                // Wait for empty state message
+                wait.until(ExpectedConditions.presenceOfElementLocated(
+                                By.xpath("//p[contains(text(), 'Nenhum item disponível')]")));
+
+                // Assert - Verify empty state message is displayed
+                WebElement emptyMessage = driver.findElement(
+                                By.xpath("//p[contains(text(), 'Nenhum item disponível')]"));
+                assertThat(emptyMessage.getText()).contains("Nenhum item disponível");
+        }
+
+        @Test
+        @DisplayName("Acceptance Test: Renter can clear location filter")
+        @Requirement("VCT-33")
+        void whenRenterClearsLocationFilter_thenAllListingsAreDisplayed() {
+                // Arrange - Create multiple listings
+                Listing lisboaListing = new Listing();
+                lisboaListing.setOwner(owner);
+                lisboaListing.setTitle("Bike in Lisboa");
+                lisboaListing.setDescription("Great bike");
+                lisboaListing.setPrice(BigDecimal.valueOf(25.00));
+                lisboaListing.setState(ListingState.AVAILABLE);
+
+                Vehicle bicycleVehicle = new Vehicle();
+                bicycleVehicle.setType("Bicycle");
+                bicycleVehicle.setCondition(VehicleCondition.GOOD);
+                lisboaListing.setVehicle(bicycleVehicle);
+                lisboaListing.setPickUpLocation("Lisboa");
+                lisboaListing.setDropOffLocation("Sintra");
+                listingRepository.save(lisboaListing);
+
+                Listing portoListing = new Listing();
+                portoListing.setOwner(owner);
+                portoListing.setTitle("Scooter in Porto");
+                portoListing.setDescription("Fast scooter");
+                portoListing.setPrice(BigDecimal.valueOf(30.00));
+                portoListing.setState(ListingState.AVAILABLE);
+
+                Vehicle scooterVehicle = new Vehicle();
+                scooterVehicle.setType("Scooter");
+                scooterVehicle.setCondition(VehicleCondition.EXCELLENT);
+                portoListing.setVehicle(scooterVehicle);
+                portoListing.setPickUpLocation("Porto");
+                portoListing.setDropOffLocation("Braga");
+                listingRepository.save(portoListing);
+
+                // Act - Navigate to BrowseItems page
+                driver.get(frontendUrl + "/browse");
+
+                // Wait for page to load
+                wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("h1")));
+
+                // Wait for loading to finish
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                                By.xpath("//p[contains(text(), 'A carregar')]")));
+
+                // Wait for listings to load
+                wait.until(ExpectedConditions.or(
+                                ExpectedConditions.presenceOfElementLocated(
+                                                By.xpath("//div[contains(@style, 'grid')]")),
+                                ExpectedConditions.presenceOfElementLocated(
+                                                By.xpath("//p[contains(text(), 'Nenhum item disponível')]"))));
+
+                // Filter by Lisboa
+                WebElement locationInput = wait.until(
+                                ExpectedConditions.presenceOfElementLocated(
+                                                By.xpath("//input[@placeholder='Digite uma localização (ex: Lisboa, Porto...)']")));
+                locationInput.clear();
+                locationInput.sendKeys("Lisboa");
+
+                WebElement searchButton = driver.findElement(
+                                By.xpath("//button[contains(text(), 'Buscar')]"));
+                searchButton.click();
+
+                // Wait for listings to update
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                                By.xpath("//p[contains(text(), 'A carregar')]")));
+
+                try {
+                        Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                }
+
+                // Verify only Lisboa listing is shown
+                assertThat(driver.findElements(By.xpath("//h3[contains(text(), 'Bike in Lisboa')]"))).hasSize(1);
+                assertThat(driver.findElements(By.xpath("//h3[contains(text(), 'Scooter in Porto')]"))).isEmpty();
+
+                // Clear the filter
+                WebElement clearButton = wait.until(
+                                ExpectedConditions.presenceOfElementLocated(
+                                                By.xpath("//button[contains(text(), 'Limpar')]")));
+                clearButton.click();
+
+                // Wait for listings to update
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                                By.xpath("//p[contains(text(), 'A carregar')]")));
+
+                try {
+                        Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                }
+
+                // Assert - Verify all listings are displayed
+                assertThat(driver.findElements(By.xpath("//h3[contains(text(), 'Bike in Lisboa')]"))).hasSize(1);
+                assertThat(driver.findElements(By.xpath("//h3[contains(text(), 'Scooter in Porto')]"))).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("Acceptance Test: Location filter is case-insensitive")
+        @Requirement("VCT-33")
+        void whenRenterFiltersByLocationCaseInsensitive_thenCorrectListingsAreDisplayed() {
+                // Arrange - Create listing with specific location
+                Listing lisboaListing = new Listing();
+                lisboaListing.setOwner(owner);
+                lisboaListing.setTitle("Bike in Lisboa");
+                lisboaListing.setDescription("Great bike");
+                lisboaListing.setPrice(BigDecimal.valueOf(25.00));
+                lisboaListing.setState(ListingState.AVAILABLE);
+
+                Vehicle bicycleVehicle = new Vehicle();
+                bicycleVehicle.setType("Bicycle");
+                bicycleVehicle.setCondition(VehicleCondition.GOOD);
+                lisboaListing.setVehicle(bicycleVehicle);
+                lisboaListing.setPickUpLocation("Lisboa");
+                lisboaListing.setDropOffLocation("Sintra");
+                listingRepository.save(lisboaListing);
+
+                // Act - Navigate to BrowseItems page
+                driver.get(frontendUrl + "/browse");
+
+                // Wait for page to load
+                wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("h1")));
+
+                // Wait for loading to finish
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                                By.xpath("//p[contains(text(), 'A carregar')]")));
+
+                // Wait for listings to load
+                wait.until(ExpectedConditions.or(
+                                ExpectedConditions.presenceOfElementLocated(
+                                                By.xpath("//div[contains(@style, 'grid')]")),
+                                ExpectedConditions.presenceOfElementLocated(
+                                                By.xpath("//p[contains(text(), 'Nenhum item disponível')]"))));
+
+                // Filter by lowercase "lisboa"
+                WebElement locationInput = wait.until(
+                                ExpectedConditions.presenceOfElementLocated(
+                                                By.xpath("//input[@placeholder='Digite uma localização (ex: Lisboa, Porto...)']")));
+                locationInput.clear();
+                locationInput.sendKeys("lisboa");
+
+                WebElement searchButton = driver.findElement(
+                                By.xpath("//button[contains(text(), 'Buscar')]"));
+                searchButton.click();
+
+                // Wait for listings to update
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                                By.xpath("//p[contains(text(), 'A carregar')]")));
+
+                try {
+                        Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                }
+
+                // Assert - Verify listing is found despite case difference
+                assertThat(driver.findElements(By.xpath("//h3[contains(text(), 'Bike in Lisboa')]"))).hasSize(1);
+        }
 }
