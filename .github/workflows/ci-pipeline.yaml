@@ -102,6 +102,7 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: SonarCloud Quality Gate Check
         if: matrix.java-version == '21' && (github.event_name == 'pull_request' || github.ref == 'refs/heads/main')
@@ -110,6 +111,7 @@ jobs:
           pollingTimeoutSec: 600
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
 
       - name: Add Coverage to PR
         if: github.event_name == 'pull_request' && matrix.java-version == '21'
