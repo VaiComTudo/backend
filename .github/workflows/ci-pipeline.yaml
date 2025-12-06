@@ -33,14 +33,17 @@ jobs:
       - name: Determine frontend ref (use head ref or fallback to dev)
         id: determine_frontend_ref
         run: |
-          # Set initial target from the workflow context
-          echo "TARGET_REF=${{ github.head_ref || github.ref_name }}" >> $GITHUB_ENV
-          echo "Checking remote for branch $TARGET_REF..."
-          # Check remote branch existence using the access token
-          if git ls-remote --heads https://x-access-token:${{ secrets.FRONTEND_ACCESS_TOKEN }}@github.com/VaiComTudo/frontend.git "$TARGET_REF" | grep -q "$TARGET_REF"; then
-            echo "Found branch $TARGET_REF, using it."
+          TOKEN="${{ secrets.FRONTEND_ACCESS_TOKEN }}"
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/VaiComTudo/frontend/branches/${BRANCH}")
+
+          if [ "$status" -eq 200 ]; then
+            echo "TARGET_REF=$BRANCH" >> $GITHUB_ENV
           else
-            echo "Branch $TARGET_REF not found in remote; falling back to 'dev'."
             echo "TARGET_REF=dev" >> $GITHUB_ENV
           fi
 
@@ -83,7 +86,7 @@ jobs:
           testExecKey: "VCT-62"
           testPlanKey: "VCT-61"
           projectKey: "VCT"
-          
+
       - name: Cache SonarQube packages
         uses: actions/cache@v4
         with:

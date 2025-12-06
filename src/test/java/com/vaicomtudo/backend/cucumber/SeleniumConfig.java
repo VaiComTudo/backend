@@ -13,16 +13,16 @@ import jakarta.annotation.PreDestroy;
 @Configuration
 public class SeleniumConfig {
 
-    private WebDriver driver;
+    private static WebDriver driver;
 
     @Bean
     @Scope("cucumber-glue")
     public WebDriver webDriver() {
-        if (driver == null) {
+        if (driver == null || isDriverClosed()) {
             WebDriverManager.chromedriver().setup();
 
             ChromeOptions options = new ChromeOptions();
-            options.addArguments("--headless"); // Run kin headless mode (no GUI)
+            options.addArguments("--headless"); // Run in headless mode (no GUI)
             options.addArguments("--no-sandbox");
             options.addArguments("--disable-dev-shm-usage");
             options.addArguments("--disable-gpu");
@@ -33,10 +33,27 @@ public class SeleniumConfig {
         return driver;
     }
 
+    private boolean isDriverClosed() {
+        if (driver == null) {
+            return true;
+        }
+        try {
+            driver.getTitle();
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
     @PreDestroy
     public void tearDown() {
         if (driver != null) {
-            driver.quit();
+            try {
+                driver.quit();
+            } catch (Exception e) {
+                // Ignore exceptions during cleanup
+            }
+            driver = null;
         }
     }
 }
