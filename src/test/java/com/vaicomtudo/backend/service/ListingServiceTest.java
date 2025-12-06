@@ -16,6 +16,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -235,5 +240,108 @@ class ListingServiceTest {
         assertThat(result).isNotNull();
         assertThat(result).isEmpty();
         verify(listingRepository, times(1)).findByStateAndVehicleType(ListingState.AVAILABLE, category);
+    }
+
+    @Test
+    @DisplayName("getListingsPaginated should return paginated listings when user exists")
+    @Requirement("VCT-47")
+    void whenGetListingsPaginated_withExistingUser_thenReturnPaginatedListings() {
+        // Arrange
+        Listing listing2 = new Listing();
+        listing2.setId(UUID.randomUUID());
+        listing2.setOwner(owner);
+        listing2.setTitle("Another Item");
+        listing2.setDescription("Another Description");
+        listing2.setPrice(BigDecimal.valueOf(75.00));
+        listing2.setState(ListingState.AVAILABLE);
+
+        List<Listing> listings = new ArrayList<>();
+        listings.add(listing);
+        listings.add(listing2);
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Listing> expectedPage = new PageImpl<>(listings, pageable, listings.size());
+
+        when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
+        when(listingRepository.findByOwner(owner, pageable)).thenReturn(expectedPage);
+
+        // Act
+        Page<Listing> result = listingService.getListingsPaginated(ownerEmail, pageable);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getTotalPages()).isEqualTo(1);
+        assertThat(result.getNumber()).isEqualTo(0);
+        assertThat(result.getSize()).isEqualTo(10);
+        verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
+        verify(listingRepository, times(1)).findByOwner(owner, pageable);
+    }
+
+    @Test
+    @DisplayName("getListingsPaginated should return empty page when user has no listings")
+    @Requirement("VCT-47")
+    void whenGetListingsPaginated_withNoListings_thenReturnEmptyPage() {
+        // Arrange
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Listing> emptyPage = new PageImpl<>(new ArrayList<>(), pageable, 0);
+
+        when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
+        when(listingRepository.findByOwner(owner, pageable)).thenReturn(emptyPage);
+
+        // Act
+        Page<Listing> result = listingService.getListingsPaginated(ownerEmail, pageable);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(0);
+        assertThat(result.getTotalPages()).isEqualTo(0);
+        verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
+        verify(listingRepository, times(1)).findByOwner(owner, pageable);
+    }
+
+    @Test
+    @DisplayName("getListingsPaginated should throw EmailNotFoundException when user not found")
+    @Requirement("VCT-47")
+    void whenGetListingsPaginated_withNonExistentUser_thenThrowException() {
+        // Arrange
+        Pageable pageable = PageRequest.of(0, 10);
+        when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> listingService.getListingsPaginated(ownerEmail, pageable))
+                .isInstanceOf(EmailNotFoundException.class);
+
+        verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
+        verify(listingRepository, never()).findByOwner(any(), any());
+    }
+
+    @Test
+    @DisplayName("getListingsPaginated should respect pagination parameters")
+    @Requirement("VCT-47")
+    void whenGetListingsPaginated_withCustomPageSize_thenReturnCorrectPage() {
+        // Arrange
+        List<Listing> listings = new ArrayList<>();
+        listings.add(listing);
+
+        Pageable pageable = PageRequest.of(1, 5);
+        Page<Listing> expectedPage = new PageImpl<>(listings, pageable, 10);
+
+        when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
+        when(listingRepository.findByOwner(owner, pageable)).thenReturn(expectedPage);
+
+        // Act
+        Page<Listing> result = listingService.getListingsPaginated(ownerEmail, pageable);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(10);
+        assertThat(result.getTotalPages()).isEqualTo(2);
+        assertThat(result.getNumber()).isEqualTo(1);
+        assertThat(result.getSize()).isEqualTo(5);
+        verify(listingRepository, times(1)).findByOwner(owner, pageable);
     }
 }
