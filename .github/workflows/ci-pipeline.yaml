@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     strategy:
       matrix:
         java-version: [21]
@@ -96,21 +99,20 @@ jobs:
 
       - name: SonarCloud Scan
         if: matrix.java-version == '21'
-        uses: SonarSource/sonarqube-scan-action@master
+        uses: SonarSource/sonarqube-scan-action@v6.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: SonarCloud Quality Gate Check
         if: matrix.java-version == '21'
-        uses: sonarsource/sonarqube-quality-gate-action@master
-        with:
-          pollingTimeoutSec: 600
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
 
       - name: Add Coverage to PR
         if: github.event_name == 'pull_request' && matrix.java-version == '21'
-        uses: madrapps/jacoco-report@v1.7.1
+        uses: madrapps/jacoco-report@v1.7.2
         with:
           paths: |
             ${{ github.workspace }}/target/site/jacoco/jacoco.xml

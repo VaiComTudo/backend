@@ -12,9 +12,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -151,10 +156,10 @@ class OwnerControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/owners/listings should return all listings")
-    @Requirement("VCT-48")
+    @DisplayName("GET /api/v1/owners/listings should return paginated listings with default parameters")
+    @Requirement("VCT-47")
     @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
-    void whenGetListings_withExistingUser_thenReturnsListings() throws Exception {
+    void whenGetListings_withDefaultPagination_thenReturnsPaginatedListings() throws Exception {
         // Arrange
         Listing listing2 = new Listing();
         listing2.setId(UUID.randomUUID());
@@ -164,47 +169,89 @@ class OwnerControllerTest {
         listing2.setPrice(BigDecimal.valueOf(75.00));
         listing2.setState(ListingState.AVAILABLE);
 
-        Set<Listing> listings = new HashSet<>();
-        listings.add(listing);
-        listings.add(listing2);
+        List<Listing> listingsList = new ArrayList<>();
+        listingsList.add(listing);
+        listingsList.add(listing2);
 
-        when(listingService.getListings(ownerEmail)).thenReturn(listings);
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Listing> page = new PageImpl<>(listingsList, pageable, listingsList.size());
+
+        when(listingService.getListingsPaginated(eq(ownerEmail), any(Pageable.class))).thenReturn(page);
 
         // Act & Assert
-        mockMvc.perform(get("/api/v1/owners/listings", ownerEmail)
+        mockMvc.perform(get("/api/v1/owners/listings")
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$", hasSize(2)));
+            .andExpect(jsonPath("$.content", hasSize(2)))
+            .andExpect(jsonPath("$.totalElements", is(2)))
+            .andExpect(jsonPath("$.totalPages", is(1)))
+            .andExpect(jsonPath("$.size", is(10)))
+            .andExpect(jsonPath("$.number", is(0)));
     }
 
     @Test
-    @DisplayName("GET /api/v1/owners/listings should return empty array when no listings")
-    @Requirement("VCT-48")
+    @DisplayName("GET /api/v1/owners/listings should return paginated listings with custom parameters")
+    @Requirement("VCT-47")
     @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
-    void whenGetListings_withNoListings_thenReturnsEmptyArray() throws Exception {
+    void whenGetListings_withCustomPagination_thenReturnsPaginatedListings() throws Exception {
         // Arrange
-        when(listingService.getListings(ownerEmail)).thenReturn(new HashSet<>());
+        List<Listing> listingsList = new ArrayList<>();
+        listingsList.add(listing);
+
+        Pageable pageable = PageRequest.of(0, 5);
+        Page<Listing> page = new PageImpl<>(listingsList, pageable, 10);
+
+        when(listingService.getListingsPaginated(eq(ownerEmail), any(Pageable.class))).thenReturn(page);
 
         // Act & Assert
-        mockMvc.perform(get("/api/v1/owners/listings", ownerEmail)
+        mockMvc.perform(get("/api/v1/owners/listings")
+                .param("page", "0")
+                .param("size", "5")
+                .param("sortBy", "price")
+                .param("sortDirection", "desc")
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$", hasSize(0)));
+            .andExpect(jsonPath("$.content", hasSize(1)))
+            .andExpect(jsonPath("$.totalElements", is(10)))
+            .andExpect(jsonPath("$.totalPages", is(2)))
+            .andExpect(jsonPath("$.size", is(5)))
+            .andExpect(jsonPath("$.number", is(0)));
     }
 
     @Test
-    @DisplayName("GET /api/v1/owners/listings should return 400 when user not found")
-    @Requirement("VCT-48")
+    @DisplayName("GET /api/v1/owners/listings should return empty page when no listings")
+    @Requirement("VCT-47")
     @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
-    void whenGetListings_withNonExistentUser_thenReturns400() throws Exception {
+    void whenGetListings_withNoListings_thenReturnsEmptyPage() throws Exception {
         // Arrange
-        when(listingService.getListings(ownerEmail))
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Listing> emptyPage = new PageImpl<>(new ArrayList<>(), pageable, 0);
+
+        when(listingService.getListingsPaginated(eq(ownerEmail), any(Pageable.class))).thenReturn(emptyPage);
+
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/owners/listings")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.content", hasSize(0)))
+            .andExpect(jsonPath("$.totalElements", is(0)))
+            .andExpect(jsonPath("$.totalPages", is(0)));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/owners/listings should return 404 when user not found")
+    @Requirement("VCT-47")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    void whenGetListings_withNonExistentUser_thenReturns404() throws Exception {
+        // Arrange
+        when(listingService.getListingsPaginated(eq(ownerEmail), any(Pageable.class)))
             .thenThrow(new EmailNotFoundException());
 
         // Act & Assert
-        mockMvc.perform(get("/api/v1/owners/listings", ownerEmail)
+        mockMvc.perform(get("/api/v1/owners/listings")
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound());
     }
