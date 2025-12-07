@@ -5,6 +5,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.vaicomtudo.backend.data.entity.Listing;
@@ -45,8 +47,15 @@ public class ListingService {
     public Set<Listing> getListings(String email) {
         User user = userRepository.findByAccountEmail(email)
             .orElseThrow(EmailNotFoundException::new);
-            
+
         return user.getListings();
+    }
+
+    public Page<Listing> getListingsPaginated(String email, Pageable pageable) {
+        User user = userRepository.findByAccountEmail(email)
+            .orElseThrow(EmailNotFoundException::new);
+
+        return listingRepository.findByOwner(user, pageable);
     }
 
     public List<Listing> getAvailableListingsByCategory(String category) {

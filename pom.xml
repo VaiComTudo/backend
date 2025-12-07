@@ -34,6 +34,21 @@
 		<selenium.version>4.27.0</selenium.version>
 		<webdrivermanager.version>5.9.2</webdrivermanager.version>
     	<sonar.exclusions>**/SecurityConfig.java</sonar.exclusions>
+
+		<sonar.organization>vaicomtudo</sonar.organization>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+		<sonar.projectKey>VaiComTudo_backend</sonar.projectKey>
+		
+		<sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+
+		<sonar.coverage.exclusions>
+			**/SecurityConfig.java,
+			**/configs/**,
+			**/data/entity/**,
+			**/auth/**,
+			**/errors/**,
+			**/VaiComTudoApplication.java
+		</sonar.coverage.exclusions>
 	</properties>
 	<dependencies>
 		<dependency>

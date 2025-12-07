@@ -6,14 +6,17 @@ import org.springframework.web.bind.annotation.RestController;
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.service.ListingService;
 
-import java.util.Set;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.GetMapping;
 
 
@@ -37,9 +40,18 @@ public class OwnerController {
 
     @PreAuthorize("hasRole('NORMAL_USER')")
     @GetMapping("/listings")
-    public ResponseEntity<Set<Listing>> getListings(Authentication authentication) {
+    public ResponseEntity<Page<Listing>> getListings(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "title") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDirection) {
         String email = authentication.getName();
-        return ResponseEntity.ok(listingService.getListings(email));
+
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        return ResponseEntity.ok(listingService.getListingsPaginated(email, pageable));
     }
 
 }
