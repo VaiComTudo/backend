@@ -14,11 +14,19 @@ import com.vaicomtudo.backend.data.entity.User;
 
 @Repository
 public interface ListingRepository extends JpaRepository<Listing, UUID> {
-    List<Listing> findByStateAndVehicleType(ListingState state, String type);
-    List<Listing> findByState(ListingState state);
-    List<Listing> findByStateAndPickUpLocationContainingIgnoreCase(ListingState state, String location);
-    List<Listing> findByStateAndDropOffLocationContainingIgnoreCase(ListingState state, String location);
-    List<Listing> findByStateAndVehicleTypeAndPickUpLocationContainingIgnoreCase(ListingState state, String type, String location);
-    List<Listing> findByStateAndVehicleTypeAndDropOffLocationContainingIgnoreCase(ListingState state, String type, String location);
-    Page<Listing> findByOwner(User owner, Pageable pageable);
+        List<Listing> findByStateAndVehicleType(ListingState state, String type);
+
+        List<Listing> findByState(ListingState state);
+
+        List<Listing> findByStateAndPickUpLocationContainingIgnoreCase(ListingState state, String location);
+
+        List<Listing> findByStateAndDropOffLocationContainingIgnoreCase(ListingState state, String location);
+
+        List<Listing> findByStateAndVehicleTypeAndPickUpLocationContainingIgnoreCase(ListingState state, String type,
+                        String location);
+
+        List<Listing> findByStateAndVehicleTypeAndDropOffLocationContainingIgnoreCase(ListingState state, String type,
+                        String location);
+
+        Page<Listing> findByOwner(User owner, Pageable pageable);
 }
