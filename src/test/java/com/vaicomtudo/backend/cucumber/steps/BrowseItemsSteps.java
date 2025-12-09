@@ -189,12 +189,61 @@ public class BrowseItemsSteps {
                 ExpectedConditions.presenceOfElementLocated(
                         By.xpath("//input[@placeholder='Digite uma localização (ex: Lisboa, Porto...)']")));
         locationInput.clear();
+
+        // Small delay to ensure clear is processed
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         locationInput.sendKeys(location);
 
+        // Wait for the input value to be updated (React state update)
+        wait.until(d -> {
+            try {
+                WebElement input = d.findElement(
+                        By.xpath("//input[@placeholder='Digite uma localização (ex: Lisboa, Porto...)']"));
+                String value = input.getDomProperty("value");
+                return location.equals(value);
+            } catch (Exception e) {
+                return false;
+            }
+        });
+
+        // Additional small delay to ensure React state is fully updated
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         // Click the search button
-        WebElement searchButton = driver.findElement(
-                By.xpath("//button[contains(text(), 'Buscar')]"));
+        WebElement searchButton = wait.until(
+                ExpectedConditions.elementToBeClickable(
+                        By.xpath("//button[contains(text(), 'Buscar')]")));
         searchButton.click();
+
+        // Wait for loading to start (optional - may not always appear)
+        try {
+            wait.until(ExpectedConditions.or(
+                    ExpectedConditions.presenceOfElementLocated(
+                            By.xpath("//p[contains(text(), 'Carregando listings...')]")),
+                    ExpectedConditions.presenceOfElementLocated(
+                            By.xpath("//h3[contains(text(), 'Bicycle')]")),
+                    ExpectedConditions.presenceOfElementLocated(
+                            By.xpath("//p[contains(text(), 'Nenhum listing encontrado')]"))));
+        } catch (Exception e) {
+            // Continue if loading doesn't appear
+        }
+
+        // Wait for loading to finish - wait for loading text to disappear
+        try {
+            wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                    By.xpath("//p[contains(text(), 'Carregando listings...')]")));
+        } catch (Exception e) {
+            // Loading text may not appear or may have already disappeared, continue
+        }
 
         // Wait for listings to update - wait for results to appear
         // Wait for either filtered listings to appear or empty state
@@ -204,9 +253,9 @@ public class BrowseItemsSteps {
                 ExpectedConditions.presenceOfElementLocated(
                         By.xpath("//p[contains(text(), 'Nenhum listing encontrado')]"))));
 
-        // Wait a bit more for the results to fully update
+        // Additional wait to ensure DOM is fully updated
         try {
-            Thread.sleep(1000);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -214,9 +263,26 @@ public class BrowseItemsSteps {
 
     @Then("the system displays only bicycles available in {string}")
     public void the_system_displays_only_bicycles_available_in(String location) {
-        // Verify that bicycles from the selected location are displayed
-        WebElement locationBicycle = driver.findElement(
-                By.xpath("//h3[contains(text(), 'Bicycle in " + location + "')]"));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        // First check if there are any listings at all
+        java.util.List<WebElement> allListings = driver.findElements(
+                By.xpath("//h3[contains(text(), 'Bicycle')]"));
+
+        if (allListings.isEmpty()) {
+            // Check if empty state is shown
+            java.util.List<WebElement> emptyState = driver.findElements(
+                    By.xpath("//p[contains(text(), 'Nenhum listing encontrado')]"));
+            if (!emptyState.isEmpty()) {
+                throw new AssertionError("No listings found after filtering by location: " + location);
+            }
+            throw new AssertionError("No bicycle listings found on page after filtering");
+        }
+
+        // Wait for the specific bicycle listing to appear
+        WebElement locationBicycle = wait.until(
+                ExpectedConditions.presenceOfElementLocated(
+                        By.xpath("//h3[contains(text(), 'Bicycle in " + location + "')]")));
         assertThat(locationBicycle).isNotNull();
         assertThat(locationBicycle.isDisplayed()).isTrue();
     }
