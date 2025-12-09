@@ -26,14 +26,28 @@ public class RenterController {
     @GetMapping("/listings")
     @PreAuthorize("hasRole('NORMAL_USER')")
     public ResponseEntity<List<Listing>> getAvailableListingsByCategory(
-            @RequestParam(required = false) String category) {
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String location) {
 
+        // Se ambos os filtros de categoria e localização estão presentes
+        if (category != null && !category.isEmpty() && location != null && !location.isEmpty()) {
+            List<Listing> listings = listingService.getAvailableListingsByCategoryAndLocation(category, location);
+            return ResponseEntity.ok(listings);
+        }
+
+        // Se apenas a categoria está presente
         if (category != null && !category.isEmpty()) {
             List<Listing> listings = listingService.getAvailableListingsByCategory(category);
             return ResponseEntity.ok(listings);
         }
 
-        // Se não houver categoria, retorna todos os listings disponíveis
+        // Se apenas a localização está presente
+        if (location != null && !location.isEmpty()) {
+            List<Listing> listings = listingService.getAvailableListingsByLocation(location);
+            return ResponseEntity.ok(listings);
+        }
+
+        // Se não houver filtros, retorna todos os listings disponíveis
         List<Listing> listings = listingService.getAllAvailableListings();
         return ResponseEntity.ok(listings);
     }

@@ -16,11 +16,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -243,105 +238,432 @@ class ListingServiceTest {
     }
 
     @Test
-    @DisplayName("getListingsPaginated should return paginated listings when user exists")
-    @Requirement("VCT-47")
-    void whenGetListingsPaginated_withExistingUser_thenReturnPaginatedListings() {
+    @DisplayName("getAvailableListingsByLocation should return listings matching pickup location")
+    @Requirement("VCT-33")
+    void whenGetAvailableListingsByLocation_withMatchingPickupLocation_thenReturnListings() {
         // Arrange
-        Listing listing2 = new Listing();
-        listing2.setId(UUID.randomUUID());
-        listing2.setOwner(owner);
-        listing2.setTitle("Another Item");
-        listing2.setDescription("Another Description");
-        listing2.setPrice(BigDecimal.valueOf(75.00));
-        listing2.setState(ListingState.AVAILABLE);
+        String location = "Lisboa";
+        Listing lisboaListing = new Listing();
+        lisboaListing.setId(UUID.randomUUID());
+        lisboaListing.setOwner(owner);
+        lisboaListing.setTitle("Bike in Lisboa");
+        lisboaListing.setDescription("Bike rental");
+        lisboaListing.setPrice(BigDecimal.valueOf(25.00));
+        lisboaListing.setState(ListingState.AVAILABLE);
 
-        List<Listing> listings = new ArrayList<>();
-        listings.add(listing);
-        listings.add(listing2);
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("bicycle");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        lisboaListing.setVehicle(vehicle);
+        lisboaListing.setPickUpLocation("Lisboa");
+        lisboaListing.setDropOffLocation("Porto");
 
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Listing> expectedPage = new PageImpl<>(listings, pageable, listings.size());
+        List<Listing> pickupResults = new ArrayList<>();
+        pickupResults.add(lisboaListing);
+        List<Listing> dropoffResults = new ArrayList<>();
 
-        when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
-        when(listingRepository.findByOwner(owner, pageable)).thenReturn(expectedPage);
+        when(listingRepository.findByStateAndPickUpLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, location))
+                .thenReturn(pickupResults);
+        when(listingRepository.findByStateAndDropOffLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, location))
+                .thenReturn(dropoffResults);
 
         // Act
-        Page<Listing> result = listingService.getListingsPaginated(ownerEmail, pageable);
+        List<Listing> result = listingService.getAvailableListingsByLocation(location);
 
         // Assert
         assertThat(result).isNotNull();
-        assertThat(result.getContent()).hasSize(2);
-        assertThat(result.getTotalElements()).isEqualTo(2);
-        assertThat(result.getTotalPages()).isEqualTo(1);
-        assertThat(result.getNumber()).isEqualTo(0);
-        assertThat(result.getSize()).isEqualTo(10);
-        verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
-        verify(listingRepository, times(1)).findByOwner(owner, pageable);
+        assertThat(result).hasSize(1);
+        assertThat(result).contains(lisboaListing);
+        assertThat(result.get(0).getPickUpLocation()).containsIgnoringCase(location);
+        verify(listingRepository, times(1))
+                .findByStateAndPickUpLocationContainingIgnoreCase(ListingState.AVAILABLE, location);
+        verify(listingRepository, times(1))
+                .findByStateAndDropOffLocationContainingIgnoreCase(ListingState.AVAILABLE, location);
     }
 
     @Test
-    @DisplayName("getListingsPaginated should return empty page when user has no listings")
-    @Requirement("VCT-47")
-    void whenGetListingsPaginated_withNoListings_thenReturnEmptyPage() {
+    @DisplayName("getAvailableListingsByLocation should return listings matching dropoff location")
+    @Requirement("VCT-33")
+    void whenGetAvailableListingsByLocation_withMatchingDropoffLocation_thenReturnListings() {
         // Arrange
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Listing> emptyPage = new PageImpl<>(new ArrayList<>(), pageable, 0);
+        String location = "Porto";
+        Listing portoListing = new Listing();
+        portoListing.setId(UUID.randomUUID());
+        portoListing.setOwner(owner);
+        portoListing.setTitle("Bike to Porto");
+        portoListing.setDescription("Bike rental");
+        portoListing.setPrice(BigDecimal.valueOf(30.00));
+        portoListing.setState(ListingState.AVAILABLE);
 
-        when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
-        when(listingRepository.findByOwner(owner, pageable)).thenReturn(emptyPage);
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("bicycle");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        portoListing.setVehicle(vehicle);
+        portoListing.setPickUpLocation("Lisboa");
+        portoListing.setDropOffLocation("Porto");
+
+        List<Listing> pickupResults = new ArrayList<>();
+        List<Listing> dropoffResults = new ArrayList<>();
+        dropoffResults.add(portoListing);
+
+        when(listingRepository.findByStateAndPickUpLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, location))
+                .thenReturn(pickupResults);
+        when(listingRepository.findByStateAndDropOffLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, location))
+                .thenReturn(dropoffResults);
 
         // Act
-        Page<Listing> result = listingService.getListingsPaginated(ownerEmail, pageable);
+        List<Listing> result = listingService.getAvailableListingsByLocation(location);
 
         // Assert
         assertThat(result).isNotNull();
-        assertThat(result.getContent()).isEmpty();
-        assertThat(result.getTotalElements()).isEqualTo(0);
-        assertThat(result.getTotalPages()).isEqualTo(0);
-        verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
-        verify(listingRepository, times(1)).findByOwner(owner, pageable);
+        assertThat(result).hasSize(1);
+        assertThat(result).contains(portoListing);
+        assertThat(result.get(0).getDropOffLocation()).containsIgnoringCase(location);
+        verify(listingRepository, times(1))
+                .findByStateAndPickUpLocationContainingIgnoreCase(ListingState.AVAILABLE, location);
+        verify(listingRepository, times(1))
+                .findByStateAndDropOffLocationContainingIgnoreCase(ListingState.AVAILABLE, location);
     }
 
     @Test
-    @DisplayName("getListingsPaginated should throw EmailNotFoundException when user not found")
-    @Requirement("VCT-47")
-    void whenGetListingsPaginated_withNonExistentUser_thenThrowException() {
+    @DisplayName("getAvailableListingsByLocation should combine pickup and dropoff results and remove duplicates")
+    @Requirement("VCT-33")
+    void whenGetAvailableListingsByLocation_withMatchingBothLocations_thenReturnCombinedWithoutDuplicates() {
         // Arrange
-        Pageable pageable = PageRequest.of(0, 10);
-        when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.empty());
+        String location = "Lisboa";
+        Listing lisboaListing = new Listing();
+        lisboaListing.setId(UUID.randomUUID());
+        lisboaListing.setOwner(owner);
+        lisboaListing.setTitle("Bike in Lisboa");
+        lisboaListing.setDescription("Bike rental");
+        lisboaListing.setPrice(BigDecimal.valueOf(25.00));
+        lisboaListing.setState(ListingState.AVAILABLE);
 
-        // Act & Assert
-        assertThatThrownBy(() -> listingService.getListingsPaginated(ownerEmail, pageable))
-                .isInstanceOf(EmailNotFoundException.class);
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("bicycle");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        lisboaListing.setVehicle(vehicle);
+        lisboaListing.setPickUpLocation("Lisboa");
+        lisboaListing.setDropOffLocation("Lisboa");
 
-        verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
-        verify(listingRepository, never()).findByOwner(any(), any());
-    }
+        // Same listing appears in both results (pickup and dropoff)
+        List<Listing> pickupResults = new ArrayList<>();
+        pickupResults.add(lisboaListing);
+        List<Listing> dropoffResults = new ArrayList<>();
+        dropoffResults.add(lisboaListing);
 
-    @Test
-    @DisplayName("getListingsPaginated should respect pagination parameters")
-    @Requirement("VCT-47")
-    void whenGetListingsPaginated_withCustomPageSize_thenReturnCorrectPage() {
-        // Arrange
-        List<Listing> listings = new ArrayList<>();
-        listings.add(listing);
-
-        Pageable pageable = PageRequest.of(1, 5);
-        Page<Listing> expectedPage = new PageImpl<>(listings, pageable, 10);
-
-        when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
-        when(listingRepository.findByOwner(owner, pageable)).thenReturn(expectedPage);
+        when(listingRepository.findByStateAndPickUpLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, location))
+                .thenReturn(pickupResults);
+        when(listingRepository.findByStateAndDropOffLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, location))
+                .thenReturn(dropoffResults);
 
         // Act
-        Page<Listing> result = listingService.getListingsPaginated(ownerEmail, pageable);
+        List<Listing> result = listingService.getAvailableListingsByLocation(location);
 
         // Assert
         assertThat(result).isNotNull();
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getTotalElements()).isEqualTo(10);
-        assertThat(result.getTotalPages()).isEqualTo(2);
-        assertThat(result.getNumber()).isEqualTo(1);
-        assertThat(result.getSize()).isEqualTo(5);
-        verify(listingRepository, times(1)).findByOwner(owner, pageable);
+        assertThat(result).hasSize(1); // Should be deduplicated
+        assertThat(result).contains(lisboaListing);
+        verify(listingRepository, times(1))
+                .findByStateAndPickUpLocationContainingIgnoreCase(ListingState.AVAILABLE, location);
+        verify(listingRepository, times(1))
+                .findByStateAndDropOffLocationContainingIgnoreCase(ListingState.AVAILABLE, location);
+    }
+
+    @Test
+    @DisplayName("getAvailableListingsByLocation should return empty list when no listings match")
+    @Requirement("VCT-33")
+    void whenGetAvailableListingsByLocation_withNoMatchingListings_thenReturnEmptyList() {
+        // Arrange
+        String location = "Faro";
+        when(listingRepository.findByStateAndPickUpLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, location))
+                .thenReturn(new ArrayList<>());
+        when(listingRepository.findByStateAndDropOffLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, location))
+                .thenReturn(new ArrayList<>());
+
+        // Act
+        List<Listing> result = listingService.getAvailableListingsByLocation(location);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result).isEmpty();
+        verify(listingRepository, times(1))
+                .findByStateAndPickUpLocationContainingIgnoreCase(ListingState.AVAILABLE, location);
+        verify(listingRepository, times(1))
+                .findByStateAndDropOffLocationContainingIgnoreCase(ListingState.AVAILABLE, location);
+    }
+
+    @Test
+    @DisplayName("getAvailableListingsByLocation should be case-insensitive")
+    @Requirement("VCT-33")
+    void whenGetAvailableListingsByLocation_withCaseInsensitiveSearch_thenReturnListings() {
+        // Arrange
+        String location = "lisboa"; // lowercase
+        Listing lisboaListing = new Listing();
+        lisboaListing.setId(UUID.randomUUID());
+        lisboaListing.setOwner(owner);
+        lisboaListing.setTitle("Bike in Lisboa");
+        lisboaListing.setDescription("Bike rental");
+        lisboaListing.setPrice(BigDecimal.valueOf(25.00));
+        lisboaListing.setState(ListingState.AVAILABLE);
+
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("bicycle");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        lisboaListing.setVehicle(vehicle);
+        lisboaListing.setPickUpLocation("Lisboa"); // uppercase in database
+        lisboaListing.setDropOffLocation("Porto");
+
+        List<Listing> pickupResults = new ArrayList<>();
+        pickupResults.add(lisboaListing);
+        List<Listing> dropoffResults = new ArrayList<>();
+
+        when(listingRepository.findByStateAndPickUpLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, location))
+                .thenReturn(pickupResults);
+        when(listingRepository.findByStateAndDropOffLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, location))
+                .thenReturn(dropoffResults);
+
+        // Act
+        List<Listing> result = listingService.getAvailableListingsByLocation(location);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result).hasSize(1);
+        assertThat(result).contains(lisboaListing);
+        verify(listingRepository, times(1))
+                .findByStateAndPickUpLocationContainingIgnoreCase(ListingState.AVAILABLE, location);
+    }
+
+    @Test
+    @DisplayName("getAvailableListingsByCategoryAndLocation should return listings matching category and pickup location")
+    @Requirement("VCT-33")
+    void whenGetAvailableListingsByCategoryAndLocation_withMatchingCategoryAndPickup_thenReturnListings() {
+        // Arrange
+        String category = "bicycle";
+        String location = "Lisboa";
+        Listing lisboaBikeListing = new Listing();
+        lisboaBikeListing.setId(UUID.randomUUID());
+        lisboaBikeListing.setOwner(owner);
+        lisboaBikeListing.setTitle("Bike in Lisboa");
+        lisboaBikeListing.setDescription("Bike rental");
+        lisboaBikeListing.setPrice(BigDecimal.valueOf(25.00));
+        lisboaBikeListing.setState(ListingState.AVAILABLE);
+
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("bicycle");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        lisboaBikeListing.setVehicle(vehicle);
+        lisboaBikeListing.setPickUpLocation("Lisboa");
+        lisboaBikeListing.setDropOffLocation("Porto");
+
+        List<Listing> pickupResults = new ArrayList<>();
+        pickupResults.add(lisboaBikeListing);
+        List<Listing> dropoffResults = new ArrayList<>();
+
+        when(listingRepository.findByStateAndVehicleTypeAndPickUpLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, category, location))
+                .thenReturn(pickupResults);
+        when(listingRepository.findByStateAndVehicleTypeAndDropOffLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, category, location))
+                .thenReturn(dropoffResults);
+
+        // Act
+        List<Listing> result = listingService.getAvailableListingsByCategoryAndLocation(category, location);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result).hasSize(1);
+        assertThat(result).contains(lisboaBikeListing);
+        assertThat(result.get(0).getVehicle().getType()).isEqualTo(category);
+        assertThat(result.get(0).getPickUpLocation()).containsIgnoringCase(location);
+        verify(listingRepository, times(1))
+                .findByStateAndVehicleTypeAndPickUpLocationContainingIgnoreCase(
+                        ListingState.AVAILABLE, category, location);
+        verify(listingRepository, times(1))
+                .findByStateAndVehicleTypeAndDropOffLocationContainingIgnoreCase(
+                        ListingState.AVAILABLE, category, location);
+    }
+
+    @Test
+    @DisplayName("getAvailableListingsByCategoryAndLocation should return listings matching category and dropoff location")
+    @Requirement("VCT-33")
+    void whenGetAvailableListingsByCategoryAndLocation_withMatchingCategoryAndDropoff_thenReturnListings() {
+        // Arrange
+        String category = "scooter";
+        String location = "Porto";
+        Listing portoScooterListing = new Listing();
+        portoScooterListing.setId(UUID.randomUUID());
+        portoScooterListing.setOwner(owner);
+        portoScooterListing.setTitle("Scooter to Porto");
+        portoScooterListing.setDescription("Scooter rental");
+        portoScooterListing.setPrice(BigDecimal.valueOf(30.00));
+        portoScooterListing.setState(ListingState.AVAILABLE);
+
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("scooter");
+        vehicle.setCondition(VehicleCondition.EXCELLENT);
+        portoScooterListing.setVehicle(vehicle);
+        portoScooterListing.setPickUpLocation("Lisboa");
+        portoScooterListing.setDropOffLocation("Porto");
+
+        List<Listing> pickupResults = new ArrayList<>();
+        List<Listing> dropoffResults = new ArrayList<>();
+        dropoffResults.add(portoScooterListing);
+
+        when(listingRepository.findByStateAndVehicleTypeAndPickUpLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, category, location))
+                .thenReturn(pickupResults);
+        when(listingRepository.findByStateAndVehicleTypeAndDropOffLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, category, location))
+                .thenReturn(dropoffResults);
+
+        // Act
+        List<Listing> result = listingService.getAvailableListingsByCategoryAndLocation(category, location);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result).hasSize(1);
+        assertThat(result).contains(portoScooterListing);
+        assertThat(result.get(0).getVehicle().getType()).isEqualTo(category);
+        assertThat(result.get(0).getDropOffLocation()).containsIgnoringCase(location);
+        verify(listingRepository, times(1))
+                .findByStateAndVehicleTypeAndPickUpLocationContainingIgnoreCase(
+                        ListingState.AVAILABLE, category, location);
+        verify(listingRepository, times(1))
+                .findByStateAndVehicleTypeAndDropOffLocationContainingIgnoreCase(
+                        ListingState.AVAILABLE, category, location);
+    }
+
+    @Test
+    @DisplayName("getAvailableListingsByCategoryAndLocation should combine results and remove duplicates")
+    @Requirement("VCT-33")
+    void whenGetAvailableListingsByCategoryAndLocation_withMatchingBoth_thenReturnCombinedWithoutDuplicates() {
+        // Arrange
+        String category = "bicycle";
+        String location = "Lisboa";
+        Listing lisboaBikeListing = new Listing();
+        lisboaBikeListing.setId(UUID.randomUUID());
+        lisboaBikeListing.setOwner(owner);
+        lisboaBikeListing.setTitle("Bike in Lisboa");
+        lisboaBikeListing.setDescription("Bike rental");
+        lisboaBikeListing.setPrice(BigDecimal.valueOf(25.00));
+        lisboaBikeListing.setState(ListingState.AVAILABLE);
+
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("bicycle");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        lisboaBikeListing.setVehicle(vehicle);
+        lisboaBikeListing.setPickUpLocation("Lisboa");
+        lisboaBikeListing.setDropOffLocation("Lisboa");
+
+        // Same listing appears in both results
+        List<Listing> pickupResults = new ArrayList<>();
+        pickupResults.add(lisboaBikeListing);
+        List<Listing> dropoffResults = new ArrayList<>();
+        dropoffResults.add(lisboaBikeListing);
+
+        when(listingRepository.findByStateAndVehicleTypeAndPickUpLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, category, location))
+                .thenReturn(pickupResults);
+        when(listingRepository.findByStateAndVehicleTypeAndDropOffLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, category, location))
+                .thenReturn(dropoffResults);
+
+        // Act
+        List<Listing> result = listingService.getAvailableListingsByCategoryAndLocation(category, location);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result).hasSize(1); // Should be deduplicated
+        assertThat(result).contains(lisboaBikeListing);
+        verify(listingRepository, times(1))
+                .findByStateAndVehicleTypeAndPickUpLocationContainingIgnoreCase(
+                        ListingState.AVAILABLE, category, location);
+        verify(listingRepository, times(1))
+                .findByStateAndVehicleTypeAndDropOffLocationContainingIgnoreCase(
+                        ListingState.AVAILABLE, category, location);
+    }
+
+    @Test
+    @DisplayName("getAvailableListingsByCategoryAndLocation should return empty list when no listings match")
+    @Requirement("VCT-33")
+    void whenGetAvailableListingsByCategoryAndLocation_withNoMatchingListings_thenReturnEmptyList() {
+        // Arrange
+        String category = "skate";
+        String location = "Faro";
+        when(listingRepository.findByStateAndVehicleTypeAndPickUpLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, category, location))
+                .thenReturn(new ArrayList<>());
+        when(listingRepository.findByStateAndVehicleTypeAndDropOffLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, category, location))
+                .thenReturn(new ArrayList<>());
+
+        // Act
+        List<Listing> result = listingService.getAvailableListingsByCategoryAndLocation(category, location);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result).isEmpty();
+        verify(listingRepository, times(1))
+                .findByStateAndVehicleTypeAndPickUpLocationContainingIgnoreCase(
+                        ListingState.AVAILABLE, category, location);
+        verify(listingRepository, times(1))
+                .findByStateAndVehicleTypeAndDropOffLocationContainingIgnoreCase(
+                        ListingState.AVAILABLE, category, location);
+    }
+
+    @Test
+    @DisplayName("getAvailableListingsByCategoryAndLocation should be case-insensitive for location")
+    @Requirement("VCT-33")
+    void whenGetAvailableListingsByCategoryAndLocation_withCaseInsensitiveLocation_thenReturnListings() {
+        // Arrange
+        String category = "bicycle";
+        String location = "lisboa"; // lowercase
+        Listing lisboaBikeListing = new Listing();
+        lisboaBikeListing.setId(UUID.randomUUID());
+        lisboaBikeListing.setOwner(owner);
+        lisboaBikeListing.setTitle("Bike in Lisboa");
+        lisboaBikeListing.setDescription("Bike rental");
+        lisboaBikeListing.setPrice(BigDecimal.valueOf(25.00));
+        lisboaBikeListing.setState(ListingState.AVAILABLE);
+
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("bicycle");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        lisboaBikeListing.setVehicle(vehicle);
+        lisboaBikeListing.setPickUpLocation("Lisboa"); // uppercase in database
+        lisboaBikeListing.setDropOffLocation("Porto");
+
+        List<Listing> pickupResults = new ArrayList<>();
+        pickupResults.add(lisboaBikeListing);
+        List<Listing> dropoffResults = new ArrayList<>();
+
+        when(listingRepository.findByStateAndVehicleTypeAndPickUpLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, category, location))
+                .thenReturn(pickupResults);
+        when(listingRepository.findByStateAndVehicleTypeAndDropOffLocationContainingIgnoreCase(
+                ListingState.AVAILABLE, category, location))
+                .thenReturn(dropoffResults);
+
+        // Act
+        List<Listing> result = listingService.getAvailableListingsByCategoryAndLocation(category, location);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result).hasSize(1);
+        assertThat(result).contains(lisboaBikeListing);
+        verify(listingRepository, times(1))
+                .findByStateAndVehicleTypeAndPickUpLocationContainingIgnoreCase(
+                        ListingState.AVAILABLE, category, location);
     }
 }
