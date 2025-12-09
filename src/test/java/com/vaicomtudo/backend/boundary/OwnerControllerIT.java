@@ -207,7 +207,7 @@ class OwnerControllerIT extends AbstractIntegrationTest {
     @Test
     @DisplayName("Integration test: POST without authentication should return 403")
     @Requirement("VCT-80")
-    void whenAddListing_withoutAuthentication_thenReturns401() throws Exception {
+    void whenAddListing_notAuthenticated_thenReturns401() throws Exception {
         Listing listing = new Listing();
         listing.setTitle("Test Item");
         listing.setDescription("Test Description");
