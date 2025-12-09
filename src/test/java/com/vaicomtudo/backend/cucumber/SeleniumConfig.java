@@ -1,8 +1,8 @@
 package com.vaicomtudo.backend.cucumber;
 
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.firefox.FirefoxOptions;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
@@ -19,16 +19,16 @@ public class SeleniumConfig {
     @Scope("cucumber-glue")
     public WebDriver webDriver() {
         if (driver == null || isDriverClosed()) {
-            WebDriverManager.firefoxdriver().setup();
+            WebDriverManager.chromedriver().setup();
 
-            FirefoxOptions options = new FirefoxOptions();
+            ChromeOptions options = new ChromeOptions();
             // options.addArguments("--headless"); // Run in headless mode (no GUI)
             options.addArguments("--no-sandbox");
             options.addArguments("--disable-dev-shm-usage");
             options.addArguments("--disable-gpu");
             options.addArguments("--window-size=1920,1080");
 
-            driver = new FirefoxDriver(options);
+            driver = new ChromeDriver(options);
         }
         return driver;
     }
