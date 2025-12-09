@@ -30,6 +30,7 @@ import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
+import com.vaicomtudo.backend.data.repository.AccountRepository;
 
 import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
 
@@ -48,7 +49,7 @@ class OwnerControllerIT extends AbstractIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private com.vaicomtudo.backend.data.repository.AccountRepository accountRepository;
+    private AccountRepository accountRepository;
 
     private User owner;
 
