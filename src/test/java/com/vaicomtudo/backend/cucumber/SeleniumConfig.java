@@ -22,7 +22,7 @@ public class SeleniumConfig {
             WebDriverManager.chromedriver().setup();
 
             ChromeOptions options = new ChromeOptions();
-            // options.addArguments("--headless"); // Run in headless mode (no GUI)
+            options.addArguments("--headless"); // Run in headless mode (no GUI)
             options.addArguments("--no-sandbox");
             options.addArguments("--disable-dev-shm-usage");
             options.addArguments("--disable-gpu");
