@@ -18,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.vaicomtudo.backend.data.entity.Account;
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.data.entity.ListingState;
+import com.vaicomtudo.backend.data.entity.Role;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
@@ -71,6 +72,8 @@ public class BrowseItemsSteps {
         owner = new User();
         owner.setAccount(ownerAccount);
         owner.setBirthdate(LocalDate.of(1990, 1, 1));
+        owner.setRole(Role.NORMAL_USER);
+        owner.setRating(0.0);
         owner = userRepository.save(owner);
 
         // Create account for renter (to browse listings)
@@ -82,6 +85,8 @@ public class BrowseItemsSteps {
         User renter = new User();
         renter.setAccount(renterAccount);
         renter.setBirthdate(LocalDate.of(1995, 1, 1));
+        renter.setRole(Role.NORMAL_USER);
+        renter.setRating(0.0);
         userRepository.save(renter);
 
         // Create bicycle listings in different locations
@@ -117,7 +122,8 @@ public class BrowseItemsSteps {
         lisboaBicycle.setDropOffLocation("Lisboa");
         listingRepository.save(lisboaBicycle);
 
-        // Login first (required to view listings) - following pattern from CreateListingSteps
+        // Login first (required to view listings) - following pattern from
+        // CreateListingSteps
         driver.get(frontendUrl + "/login");
 
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
@@ -134,12 +140,23 @@ public class BrowseItemsSteps {
         WebElement submitButton = driver.findElement(By.id("login-submit-btn"));
         submitButton.click();
 
-        // Wait for redirect to explore page - following pattern from CreateListingSteps
+        // Wait for redirect to explore page or error - following pattern from
+        // LoginSteps
         wait.until(d -> {
-            return d.getCurrentUrl().contains("/explore");
+            String currentUrl = d.getCurrentUrl();
+            boolean isRedirected = currentUrl.contains("/explore");
+            boolean hasError = !d.findElements(By.id("login-error")).isEmpty();
+            return isRedirected || hasError;
         });
 
-        // Wait for page to load - wait for the location filter input (indicates page is loaded)
+        // Verify login was successful (no error)
+        boolean hasError = !driver.findElements(By.id("login-error")).isEmpty();
+        if (hasError) {
+            throw new RuntimeException("Login failed - error message present on page");
+        }
+
+        // Wait for page to load - wait for the location filter input (indicates page is
+        // loaded)
         wait.until(ExpectedConditions.presenceOfElementLocated(
                 By.xpath("//input[@placeholder='Digite uma localização (ex: Lisboa, Porto...)']")));
 
@@ -164,7 +181,7 @@ public class BrowseItemsSteps {
     @When("I apply the location filter and select {string}")
     public void i_apply_the_location_filter_and_select(String location) {
         this.selectedLocation = location;
-        
+
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
         // Find and fill the location input
@@ -216,4 +233,3 @@ public class BrowseItemsSteps {
         }
     }
 }
-
