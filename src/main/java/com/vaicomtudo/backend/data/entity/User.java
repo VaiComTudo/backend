@@ -51,7 +51,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private LocalDate birthdate;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = {CascadeType.MERGE, CascadeType.REMOVE, CascadeType.REFRESH})
     @JoinColumn(name = "account_id", referencedColumnName = "id")
     private Account account;
 

@@ -12,12 +12,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import com.vaicomtudo.backend.config.AbstractIntegrationTest;
 import com.vaicomtudo.backend.data.entity.Account;
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.data.entity.ListingState;
@@ -30,9 +30,7 @@ import com.vaicomtudo.backend.data.repository.UserRepository;
 
 import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-class RenterControllerIT {
+class RenterControllerIT extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -57,8 +55,11 @@ class RenterControllerIT {
         // Create account
         Account account = new Account();
         account.setName("Integration Test Owner");
-        account.setEmail("integration@test.com");
+        account.setEmail("renter@test.com");
         account.setPasswordHash("hashedpassword");
+
+        // Save account first (no longer cascades from user)
+        account = accountRepository.save(account);
 
         // Create and save user
         owner = new User();
@@ -70,6 +71,7 @@ class RenterControllerIT {
     @Test
     @DisplayName("Integration test: Filter listings by bicycle category")
     @Requirement("VCT-32")
+    @WithMockUser(username = "renter@test.com", roles = {"NORMAL_USER"})
     void whenFilterByBicycleCategory_thenReturnsOnlyBicycles() throws Exception {
         // Create bicycle listing
         Listing bicycleListing = new Listing();
@@ -121,6 +123,7 @@ class RenterControllerIT {
     @Test
     @DisplayName("Integration test: Only available listings are returned")
     @Requirement("VCT-32")
+    @WithMockUser(username = "renter@test.com", roles = {"NORMAL_USER"})
     void whenFilterByCategory_thenReturnsOnlyAvailableListings() throws Exception {
         // Create available bicycle listing
         Listing availableBicycle = new Listing();
@@ -170,6 +173,7 @@ class RenterControllerIT {
     @Test
     @DisplayName("Integration test: Multiple listings of same category are returned")
     @Requirement("VCT-32")
+    @WithMockUser(username = "renter@test.com", roles = {"NORMAL_USER"})
     void whenFilterByCategory_withMultipleListings_thenReturnsAllMatching() throws Exception {
         // Create multiple bicycle listings
         for (int i = 1; i <= 3; i++) {

@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.vaicomtudo.backend.data.entity.Account;
 import com.vaicomtudo.backend.data.entity.Role;
 import com.vaicomtudo.backend.data.entity.User;
+import com.vaicomtudo.backend.data.repository.AccountRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
 import io.cucumber.java.en.Given;
@@ -32,6 +33,9 @@ public class CreateListingSteps {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private AccountRepository accountRepository;
+
     @Value("${frontend.url}")
     private String frontendUrl;
 
@@ -46,6 +50,8 @@ public class CreateListingSteps {
             .passwordHash(passwordEncoder.encode(testPassword))
             .name("Test User")
             .build();
+        
+        account = accountRepository.save(account);
 
         User user = User.builder()
             .account(account)
