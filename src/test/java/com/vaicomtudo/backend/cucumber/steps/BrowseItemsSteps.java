@@ -200,22 +200,38 @@ public class BrowseItemsSteps {
         locationInput.sendKeys(location);
 
         // Wait for the input value to be updated (React state update)
+        // Use both getDomProperty and getDomAttribute as fallback
         wait.until(d -> {
             try {
                 WebElement input = d.findElement(
                         By.xpath("//input[@placeholder='Digite uma localização (ex: Lisboa, Porto...)']"));
                 String value = input.getDomProperty("value");
+                if (value == null || value.isEmpty()) {
+                    value = input.getDomAttribute("value");
+                }
                 return location.equals(value);
             } catch (Exception e) {
                 return false;
             }
         });
 
-        // Additional small delay to ensure React state is fully updated
+        // Additional delay to ensure React state is fully updated and onChange handler
+        // has fired
         try {
-            Thread.sleep(300);
+            Thread.sleep(500);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+
+        // Verify the input still has the correct value before clicking
+        WebElement verifyInput = driver.findElement(
+                By.xpath("//input[@placeholder='Digite uma localização (ex: Lisboa, Porto...)']"));
+        String verifyValue = verifyInput.getDomProperty("value");
+        if (verifyValue == null || verifyValue.isEmpty()) {
+            verifyValue = verifyInput.getDomAttribute("value");
+        }
+        if (!location.equals(verifyValue)) {
+            throw new RuntimeException("Input value mismatch. Expected: " + location + ", Got: " + verifyValue);
         }
 
         // Click the search button
@@ -253,6 +269,14 @@ public class BrowseItemsSteps {
                 ExpectedConditions.presenceOfElementLocated(
                         By.xpath("//p[contains(text(), 'Nenhum listing encontrado')]"))));
 
+        // Check for error messages
+        java.util.List<WebElement> errorElements = driver.findElements(
+                By.xpath("//div[contains(@style, 'f8d7da') or contains(@style, '721c24')]"));
+        if (!errorElements.isEmpty()) {
+            String errorText = errorElements.get(0).getText();
+            throw new RuntimeException("Error displayed on page after filtering: " + errorText);
+        }
+
         // Additional wait to ensure DOM is fully updated
         try {
             Thread.sleep(2000);
@@ -274,7 +298,17 @@ public class BrowseItemsSteps {
             java.util.List<WebElement> emptyState = driver.findElements(
                     By.xpath("//p[contains(text(), 'Nenhum listing encontrado')]"));
             if (!emptyState.isEmpty()) {
-                throw new AssertionError("No listings found after filtering by location: " + location);
+                // Check what the current URL is and what the input value is for debugging
+                String currentUrl = driver.getCurrentUrl();
+                WebElement locationInput = driver.findElement(
+                        By.xpath("//input[@placeholder='Digite uma localização (ex: Lisboa, Porto...)']"));
+                String inputValue = locationInput.getDomProperty("value");
+                if (inputValue == null || inputValue.isEmpty()) {
+                    inputValue = locationInput.getDomAttribute("value");
+                }
+                throw new AssertionError("No listings found after filtering by location: " + location
+                        + ". Current URL: " + currentUrl
+                        + ". Input value: " + inputValue);
             }
             throw new AssertionError("No bicycle listings found on page after filtering");
         }
