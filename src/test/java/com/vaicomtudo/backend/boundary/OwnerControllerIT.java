@@ -209,17 +209,17 @@ class OwnerControllerIT extends AbstractIntegrationTest {
     @Requirement("VCT-80")
     void whenAddListing_notAuthenticated_thenReturns401() throws Exception {
         Listing listing = new Listing();
-        listing.setTitle("Test Item");
-        listing.setDescription("Test Description");
-        listing.setPrice(BigDecimal.valueOf(50.00));
+        listing.setTitle("Title here");
+        listing.setDescription("something here");
+        listing.setPrice(BigDecimal.valueOf(80.00));
         listing.setState(ListingState.AVAILABLE);
 
         Vehicle vehicle = new Vehicle();
-        vehicle.setType("Car");
-        vehicle.setCondition(VehicleCondition.GOOD);
+        vehicle.setType("Bike");
+        vehicle.setCondition(VehicleCondition.POOR);
         listing.setVehicle(vehicle);
-        listing.setPickUpLocation("Test Pickup");
-        listing.setDropOffLocation("Test Dropoff");
+        listing.setPickUpLocation("Some Pickup location");
+        listing.setDropOffLocation("Another Dropoff location");
 
         mockMvc.perform(post("/api/v1/owners/listings")
                 .contentType(MediaType.APPLICATION_JSON)
