@@ -1,0 +1,32 @@
+services:
+  prometheus:
+    image: prom/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+    volumes:
+      - "./prometheus.yaml:/etc/prometheus/prometheus.yaml"
+    ports:
+      - 9090:9090
+    networks:
+      - monitoring
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+    environment:
+      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=1s
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - grafana-conf:/etc/grafana
+    networks:
+      - monitoring
+
+volumes:
+  grafana-data:
+  grafana-conf:
+
+networks:
+  monitoring:
+    driver: bridge
