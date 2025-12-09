@@ -15,6 +15,7 @@ import com.vaicomtudo.backend.auth.RegisterRequest;
 import com.vaicomtudo.backend.data.entity.Account;
 import com.vaicomtudo.backend.data.entity.Role;
 import com.vaicomtudo.backend.data.entity.User;
+import com.vaicomtudo.backend.data.repository.AccountRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthenticationService {
     private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -46,6 +48,9 @@ public class AuthenticationService {
             .email(request.getEmail())
             .passwordHash(passwordEncoder.encode(request.getPassword()))
             .build();
+
+        // Save account first (no longer cascades from user)
+        account = accountRepository.save(account);
 
         // Create user
         User user = new User();

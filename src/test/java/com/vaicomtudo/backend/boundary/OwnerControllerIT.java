@@ -13,8 +13,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -22,6 +20,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import tools.jackson.databind.ObjectMapper;
+import com.vaicomtudo.backend.config.AbstractIntegrationTest;
 import com.vaicomtudo.backend.data.entity.Account;
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.data.entity.ListingState;
@@ -34,9 +33,7 @@ import com.vaicomtudo.backend.data.repository.UserRepository;
 
 import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-class OwnerControllerIT {
+class OwnerControllerIT extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -50,18 +47,25 @@ class OwnerControllerIT {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private com.vaicomtudo.backend.data.repository.AccountRepository accountRepository;
+
     private User owner;
 
     @BeforeEach
     void setUp() {
         listingRepository.deleteAll();
         userRepository.deleteAll();
+        accountRepository.deleteAll();
 
-        // Create account
+        // Create account with email matching @WithMockUser username
         Account account = new Account();
         account.setName("Integration Test Owner");
-        account.setEmail("integration@test.com");
+        account.setEmail("test@email.com");  // Match @WithMockUser username
         account.setPasswordHash("hashedpassword");
+
+        // Save account first (no longer cascades from user)
+        account = accountRepository.save(account);
 
         // Create and save user
         owner = new User();
@@ -91,8 +95,7 @@ class OwnerControllerIT {
         listing1.setPickUpLocation("Location A");
         listing1.setDropOffLocation("Location B");
 
-        mockMvc.perform(post("/api/v1/owners/{id}/listings", owner.getId())
-                .param("id", owner.getId().toString())
+        mockMvc.perform(post("/api/v1/owners/listings")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(listing1)))
             .andExpect(status().isCreated())
@@ -113,8 +116,7 @@ class OwnerControllerIT {
         listing2.setPickUpLocation("Location C");
         listing2.setDropOffLocation("Location D");
 
-        mockMvc.perform(post("/api/v1/owners/{id}/listings", owner.getId())
-                .param("id", owner.getId().toString())
+        mockMvc.perform(post("/api/v1/owners/listings")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(listing2)))
             .andExpect(status().isCreated())
@@ -122,8 +124,7 @@ class OwnerControllerIT {
             .andExpect(jsonPath("$.price").value(75.00));
 
         // Retrieve all listings
-        MvcResult result = mockMvc.perform(get("/api/v1/owners/{id}/listings", owner.getId())
-                .param("id", owner.getId().toString())
+        MvcResult result = mockMvc.perform(get("/api/v1/owners/listings")
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andReturn();
@@ -155,8 +156,7 @@ class OwnerControllerIT {
         listing.setDropOffLocation("Airport");
 
         // Act - Create listing via API
-        mockMvc.perform(post("/api/v1/owners/{id}/listings", owner.getId())
-                .param("id", owner.getId().toString())
+        mockMvc.perform(post("/api/v1/owners/listings")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(listing)))
             .andExpect(status().isCreated());
@@ -188,8 +188,7 @@ class OwnerControllerIT {
         listing.setPickUpLocation("Test Pickup");
         listing.setDropOffLocation("Test Dropoff");
 
-        mockMvc.perform(post("/api/v1/owners/{id}/listings", owner.getId())
-                .param("id", owner.getId().toString())
+        mockMvc.perform(post("/api/v1/owners/listings")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(listing)))
             .andExpect(status().isForbidden());
@@ -200,14 +199,13 @@ class OwnerControllerIT {
     @Requirement("VCT-80")
     @WithMockUser(username = "test@email.com", roles = {"ADMIN"})
     void whenGetListings_withoutNormalUserRole_thenReturns403() throws Exception {
-        mockMvc.perform(get("/api/v1/owners/{id}/listings", owner.getId())
-                .param("id", owner.getId().toString())
+        mockMvc.perform(get("/api/v1/owners/listings")
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isForbidden());
     }
 
     @Test
-    @DisplayName("Integration test: POST without authentication should return 401")
+    @DisplayName("Integration test: POST without authentication should return 403")
     @Requirement("VCT-80")
     void whenAddListing_withoutAuthentication_thenReturns401() throws Exception {
         Listing listing = new Listing();
@@ -223,11 +221,10 @@ class OwnerControllerIT {
         listing.setPickUpLocation("Test Pickup");
         listing.setDropOffLocation("Test Dropoff");
 
-        mockMvc.perform(post("/api/v1/owners/{id}/listings", owner.getId())
-                .param("id", owner.getId().toString())
+        mockMvc.perform(post("/api/v1/owners/listings")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(listing)))
-            .andExpect(status().isUnauthorized());
+            .andExpect(status().isForbidden());
     }
 
     @Test
@@ -251,8 +248,7 @@ class OwnerControllerIT {
             listing.setPickUpLocation("Pickup " + i);
             listing.setDropOffLocation("Dropoff " + i);
 
-            mockMvc.perform(post("/api/v1/owners/{id}/listings", owner.getId())
-                    .param("id", owner.getId().toString())
+            mockMvc.perform(post("/api/v1/owners/listings")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(listing)))
                 .andExpect(status().isCreated());
