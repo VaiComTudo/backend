@@ -30,8 +30,11 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Build and Run Tests
-        run: mvn clean verify -B
+      - name: Run Unit Tests
+        run: mvn test -B
+
+      - name: Run Integration Tests
+        run: mvn test -Dtest=*IT
 
       - name: Determine frontend ref (use head ref or fallback to dev)
         id: determine_frontend_ref

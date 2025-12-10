@@ -21,6 +21,7 @@ import com.vaicomtudo.backend.data.entity.Role;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
+import com.vaicomtudo.backend.data.repository.AccountRepository;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
@@ -42,6 +43,9 @@ public class ViewListingsSteps {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private AccountRepository accountRepository;
+
     @Value("${frontend.url}")
     private String frontendUrl;
 
@@ -54,12 +58,13 @@ public class ViewListingsSteps {
         listingRepository.deleteAll();
         userRepository.deleteAll();
 
-        // Create test account
         Account account = Account.builder()
             .email(testEmail)
             .passwordHash(passwordEncoder.encode(testPassword))
             .name("Test Owner")
             .build();
+
+        account = accountRepository.save(account);
 
         testUser = User.builder()
             .account(account)

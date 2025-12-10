@@ -27,15 +27,19 @@ import com.vaicomtudo.backend.auth.RegisterRequest;
 import com.vaicomtudo.backend.data.entity.Account;
 import com.vaicomtudo.backend.data.entity.Role;
 import com.vaicomtudo.backend.data.entity.User;
+import com.vaicomtudo.backend.data.repository.AccountRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
 import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
 
 @ExtendWith(MockitoExtension.class)
 public class AuthenticationServiceTest {
-    
+
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private AccountRepository accountRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -59,12 +63,13 @@ public class AuthenticationServiceTest {
             .password("pass")
             .birthdate(LocalDate.of(2000, 1, 1))
             .build();
-        
+
         when(passwordEncoder.encode("pass")).thenReturn("encoded");
         when(jwtService.generateToken(any())).thenReturn("jwt-token");
         when(userRepository.findByAccountEmail("test@email.com"))
             .thenReturn(Optional.empty());
-        
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
         AuthenticationResponse response = authenticationService.register(request, Role.NORMAL_USER);
         assertThat(response.getToken()).isEqualTo("jwt-token");
     }
@@ -130,6 +135,7 @@ public class AuthenticationServiceTest {
         when(jwtService.generateToken(any())).thenReturn("jwt-token");
         when(userRepository.findByAccountEmail("adult@email.com"))
             .thenReturn(Optional.empty());
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AuthenticationResponse response = authenticationService.register(request, Role.NORMAL_USER);
         assertThat(response.getToken()).isEqualTo("jwt-token");
