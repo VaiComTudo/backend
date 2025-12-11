@@ -13,6 +13,7 @@ import com.vaicomtudo.backend.auth.RegisterRequest;
 import com.vaicomtudo.backend.data.entity.Role;
 import com.vaicomtudo.backend.service.AuthenticationService;
 
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,6 +26,7 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
 
     @PostMapping("/register")
+    @Timed(value = "request.register")
     public ResponseEntity<AuthenticationResponse> register(
         @RequestBody RegisterRequest request,
         @RequestParam Role role
@@ -34,6 +36,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/login")
+    @Timed(value = "request.login")
     public ResponseEntity<AuthenticationResponse> authenticate(
         @RequestBody AuthenticationRequest request
     ) {

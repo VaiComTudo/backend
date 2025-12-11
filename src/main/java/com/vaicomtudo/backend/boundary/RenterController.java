@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.service.ListingService;
 
+import io.micrometer.core.annotation.Timed;
+
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
@@ -25,6 +27,7 @@ public class RenterController {
 
     @GetMapping("/listings")
     @PreAuthorize("hasRole('NORMAL_USER')")
+    @Timed(value = "request.rentersgetlistings")
     public ResponseEntity<List<Listing>> getAvailableListingsByCategory(
             @RequestParam(required = false) String category) {
 

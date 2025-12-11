@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.service.ListingService;
 
+import io.micrometer.core.annotation.Timed;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +34,7 @@ public class OwnerController {
 
     @PreAuthorize("hasRole('NORMAL_USER')")
     @PostMapping("/listings")
+    @Timed(value = "request.ownerspostlistings")
     public ResponseEntity<Listing> addListing(@RequestBody Listing listing, Authentication authentication) {
         String email = authentication.getName();
         Listing response = listingService.saveListing(listing, email);
@@ -40,6 +43,7 @@ public class OwnerController {
 
     @PreAuthorize("hasRole('NORMAL_USER')")
     @GetMapping("/listings")
+    @Timed(value = "request.ownersgetlistings")
     public ResponseEntity<Page<Listing>> getListings(
             Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
