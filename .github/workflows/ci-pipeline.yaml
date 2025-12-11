@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     strategy:
       matrix:
         java-version: [21]
@@ -27,8 +30,68 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Build and Run Tests
-        run: mvn clean verify -B
+      - name: Run Unit Tests
+        run: mvn test -B
+
+      - name: Run Integration Tests
+        run: mvn test -Dtest=*IT
+
+      - name: Determine frontend ref (use head ref or fallback to dev)
+        id: determine_frontend_ref
+        run: |
+          TOKEN="${{ secrets.FRONTEND_ACCESS_TOKEN }}"
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/VaiComTudo/frontend/branches/${BRANCH}")
+
+          if [ "$status" -eq 200 ]; then
+            echo "TARGET_REF=$BRANCH" >> $GITHUB_ENV
+          else
+            echo "TARGET_REF=dev" >> $GITHUB_ENV
+          fi
+
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          repository: VaiComTudo/frontend
+          ref: ${{ env.TARGET_REF }}
+          path: frontend
+          token: ${{ secrets.FRONTEND_ACCESS_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Start Frontend Server
+        working-directory: ./frontend
+        run: |
+          npm run dev &
+          npx wait-on http://localhost:5173 --timeout 60000
+        env:
+          VITE_API_BASE_URL: http://localhost:8080/api/v1
+
+      - name: Run Cucumber E2E Tests
+        run: mvn test -Dtest=CucumberTestRunner
+
+      - name: Import Cucumber Results to Xray
+        if: success() || failure()
+        uses: mikepenz/xray-action@v3
+        with:
+          username: ${{ secrets.XRAY_CLIENT_ID }}
+          password: ${{ secrets.XRAY_CLIENT_SECRET }}
+          testFormat: "cucumber"
+          testPaths: "**target/cucumber.json"
+          testExecKey: "VCT-62"
+          testPlanKey: "VCT-61"
+          projectKey: "VCT"
 
       - name: Cache SonarQube packages
         uses: actions/cache@v4
@@ -39,21 +102,20 @@ jobs:
 
       - name: SonarCloud Scan
         if: matrix.java-version == '21'
-        uses: SonarSource/sonarqube-scan-action@master
+        uses: SonarSource/sonarqube-scan-action@v6.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: SonarCloud Quality Gate Check
         if: matrix.java-version == '21'
-        uses: sonarsource/sonarqube-quality-gate-action@master
-        with:
-          pollingTimeoutSec: 600
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
 
       - name: Add Coverage to PR
         if: github.event_name == 'pull_request' && matrix.java-version == '21'
-        uses: madrapps/jacoco-report@v1.7.1
+        uses: madrapps/jacoco-report@v1.7.2
         with:
           paths: |
             ${{ github.workspace }}/target/site/jacoco/jacoco.xml
@@ -61,14 +123,14 @@ jobs:
           min-coverage-overall: 80
           min-coverage-changed-files: 80
 
-      - name: Import test results to Xray
-        if: always()
-        uses: mikepenz/xray-action@v3.0.0
+      - name: Import test results to Xray (excluding Cucumber)
+        if: success() || failure()
+        uses: mikepenz/xray-action@v3
         with:
           username: ${{ secrets.XRAY_CLIENT_ID }}
           password: ${{ secrets.XRAY_CLIENT_SECRET }}
           testFormat: "junit"
-          testPaths: "**/target/TEST-*.xml"
+          testPaths: "**/surefire-reports/TEST-*.xml"
+          testExecKey: "VCT-62"
+          testPlanKey: "VCT-61"
           projectKey: "VCT"
-          testPlanKey: ""
-          testEnvironments: "java${{ matrix.java-version }}"
