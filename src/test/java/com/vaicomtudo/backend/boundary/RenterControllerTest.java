@@ -24,6 +24,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.vaicomtudo.backend.config.AbstractIntegrationTest;
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.data.entity.ListingState;
 import com.vaicomtudo.backend.data.entity.User;
@@ -35,7 +36,7 @@ import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class RenterControllerTest {
+class RenterControllerTest extends AbstractIntegrationTest {
 
         @Autowired
         private MockMvc mockMvc;
