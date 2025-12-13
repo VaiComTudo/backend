@@ -47,7 +47,8 @@
 			**/data/entity/**,
 			**/auth/**,
 			**/errors/**,
-			**/VaiComTudoApplication.java
+			**/VaiComTudoApplication.java,
+			**/data/specification/**
 		</sonar.coverage.exclusions>
 	</properties>
 	<dependencies>
