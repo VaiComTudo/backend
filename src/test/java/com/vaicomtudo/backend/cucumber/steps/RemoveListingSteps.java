@@ -139,10 +139,9 @@ public class RemoveListingSteps {
         removeButton.click();
         
         // Wait for the confirmation alert to appear
-        wait.until(ExpectedConditions.alertIsPresent());
+        Alert alert = wait.until(ExpectedConditions.alertIsPresent());
         
         // Accept the confirmation alert
-        Alert alert = driver.switchTo().alert();
         alert.accept();
     }
 
