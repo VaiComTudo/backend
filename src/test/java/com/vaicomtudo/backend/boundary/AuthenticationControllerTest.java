@@ -18,13 +18,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 import com.vaicomtudo.backend.auth.AuthenticationRequest;
 import com.vaicomtudo.backend.auth.RegisterRequest;
+import com.vaicomtudo.backend.config.AbstractIntegrationTest;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
 import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class AuthenticationControllerTest {
+public class AuthenticationControllerTest extends AbstractIntegrationTest {
     
     @Autowired
     private MockMvc mockMvc;
