@@ -5,10 +5,12 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.springframework.context.annotation.Import;
 
 @SuppressWarnings("resource")
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(TestFlywayConfig.class)
 public abstract class AbstractIntegrationTest {
 
     protected static final PostgreSQLContainer<?> postgresContainer;
@@ -33,6 +35,10 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.datasource.password", postgresContainer::getPassword);
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
         registry.add("spring.jpa.database-platform", () -> "org.hibernate.dialect.PostgreSQLDialect");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
+
+        // Enable Flyway for tests - uses same migrations as production
+        registry.add("spring.flyway.enabled", () -> "true");
+        registry.add("spring.flyway.clean-disabled", () -> "false");
     }
 }
