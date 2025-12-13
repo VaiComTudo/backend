@@ -42,13 +42,14 @@ import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.exception.EmailNotFoundException;
 import com.vaicomtudo.backend.exception.MismatchEmailException;
+import com.vaicomtudo.backend.config.AbstractIntegrationTest;
 import com.vaicomtudo.backend.service.ListingService;
 
 import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class OwnerControllerTest {
+class OwnerControllerTest extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
