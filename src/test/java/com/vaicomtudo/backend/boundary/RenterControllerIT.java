@@ -114,10 +114,7 @@ class RenterControllerIT extends AbstractIntegrationTest {
 
         // Verify only bicycle is returned
         String content = result.getResponse().getContentAsString();
-        assertThat(content).contains("Mountain Bike");
-        assertThat(content).contains("bicycle");
-        assertThat(content).doesNotContain("Electric Scooter");
-        assertThat(content).doesNotContain("scooter");
+        assertThat(content).contains("Mountain Bike").contains("bicycle").doesNotContain("Electric Scooter").doesNotContain("scooter");
     }
 
     @Test
@@ -166,8 +163,7 @@ class RenterControllerIT extends AbstractIntegrationTest {
 
         // Verify only available listing is returned
         String content = result.getResponse().getContentAsString();
-        assertThat(content).contains("Available Bike");
-        assertThat(content).doesNotContain("Unavailable Bike");
+        assertThat(content).contains("Available Bike").doesNotContain("Unavailable Bike");
     }
 
     @Test

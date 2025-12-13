@@ -24,7 +24,7 @@ import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-public class AuthenticationControllerTest {
+class AuthenticationControllerTest {
     
     @Autowired
     private MockMvc mockMvc;
