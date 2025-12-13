@@ -38,7 +38,9 @@ import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 import com.vaicomtudo.backend.exception.EmailNotFoundException;
+import com.vaicomtudo.backend.exception.ListingNotFoundException;
 import com.vaicomtudo.backend.exception.MismatchEmailException;
+import com.vaicomtudo.backend.exception.UnauthorizedListingAccessException;
 
 import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
 
@@ -343,5 +345,76 @@ class ListingServiceTest {
         assertThat(result.getNumber()).isEqualTo(1);
         assertThat(result.getSize()).isEqualTo(5);
         verify(listingRepository, times(1)).findByOwner(owner, pageable);
+    }
+
+    @Test
+    @DisplayName("removeListing should successfully remove listing when owner matches")
+    @Requirement("VCT-59")
+    void whenRemoveListing_withValidOwner_thenListingRemoved() {
+        // Arrange
+        listing.setOwner(owner);
+        owner.addListing(listing);
+        
+        when(listingRepository.findById(listing.getId())).thenReturn(Optional.of(listing));
+        
+        // Act
+        listingService.removeListing(listing.getId(), ownerEmail);
+        
+        // Assert
+        assertThat(owner.getListings()).doesNotContain(listing);
+        assertThat(listing.getOwner()).isNull();
+        verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, times(1)).delete(listing);
+    }
+
+    @Test
+    @DisplayName("removeListing should throw ListingNotFoundException when listing does not exist")
+    @Requirement("VCT-59")
+    void whenRemoveListing_withNonExistentListing_thenThrowException() {
+        // Arrange
+        UUID nonExistentId = UUID.randomUUID();
+        when(listingRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+        
+        // Act & Assert
+        assertThatThrownBy(() -> listingService.removeListing(nonExistentId, ownerEmail))
+                .isInstanceOf(ListingNotFoundException.class);
+        
+        verify(listingRepository, times(1)).findById(nonExistentId);
+        verify(listingRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("removeListing should throw UnauthorizedListingAccessException when user is not owner")
+    @Requirement("VCT-59")
+    void whenRemoveListing_withDifferentOwner_thenThrowException() {
+        // Arrange
+        String differentEmail = "different@email.com";
+        listing.setOwner(owner);
+        
+        when(listingRepository.findById(listing.getId())).thenReturn(Optional.of(listing));
+        
+        // Act & Assert
+        assertThatThrownBy(() -> listingService.removeListing(listing.getId(), differentEmail))
+                .isInstanceOf(UnauthorizedListingAccessException.class);
+        
+        verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("removeListing should throw UnauthorizedListingAccessException when listing has no owner")
+    @Requirement("VCT-59")
+    void whenRemoveListing_withNoOwner_thenThrowException() {
+        // Arrange
+        listing.setOwner(null);
+        
+        when(listingRepository.findById(listing.getId())).thenReturn(Optional.of(listing));
+        
+        // Act & Assert
+        assertThatThrownBy(() -> listingService.removeListing(listing.getId(), ownerEmail))
+                .isInstanceOf(UnauthorizedListingAccessException.class);
+        
+        verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, never()).delete(any());
     }
 }
