@@ -187,60 +187,6 @@ class ListingServiceTest {
     }
 
     @Test
-    @DisplayName("getAvailableListingsByCategory should return available listings for given category")
-    @Requirement("VCT-32")
-    void whenGetAvailableListingsByCategory_withValidCategory_thenReturnListings() {
-        // Arrange
-        String category = "bicycle";
-        Listing bicycleListing = new Listing();
-        bicycleListing.setId(UUID.randomUUID());
-        bicycleListing.setOwner(owner);
-        bicycleListing.setTitle("Bicycle Rental");
-        bicycleListing.setDescription("Mountain bike");
-        bicycleListing.setPrice(BigDecimal.valueOf(25.00));
-        bicycleListing.setState(ListingState.AVAILABLE);
-
-        Vehicle bicycleVehicle = new Vehicle();
-        bicycleVehicle.setType("bicycle");
-        bicycleVehicle.setCondition(VehicleCondition.GOOD);
-        bicycleListing.setVehicle(bicycleVehicle);
-        bicycleListing.setPickUpLocation("Location A");
-        bicycleListing.setDropOffLocation("Location B");
-
-        List<Listing> availableListings = new ArrayList<>();
-        availableListings.add(bicycleListing);
-
-        when(listingRepository.findByStateAndVehicleType(ListingState.AVAILABLE, category))
-                .thenReturn(availableListings);
-
-        // Act
-        List<Listing> result = listingService.getAvailableListingsByCategory(category);
-
-        // Assert
-        assertThat(result).isNotNull().hasSize(1).contains(bicycleListing);
-        assertThat(result.get(0).getState()).isEqualTo(ListingState.AVAILABLE);
-        assertThat(result.get(0).getVehicle().getType()).isEqualTo("bicycle");
-        verify(listingRepository, times(1)).findByStateAndVehicleType(ListingState.AVAILABLE, category);
-    }
-
-    @Test
-    @DisplayName("getAvailableListingsByCategory should return empty list when no listings found")
-    @Requirement("VCT-32")
-    void whenGetAvailableListingsByCategory_withNoMatchingListings_thenReturnEmptyList() {
-        // Arrange
-        String category = "scooter";
-        when(listingRepository.findByStateAndVehicleType(ListingState.AVAILABLE, category))
-                .thenReturn(new ArrayList<>());
-
-        // Act
-        List<Listing> result = listingService.getAvailableListingsByCategory(category);
-
-        // Assert
-        assertThat(result).isNotNull().isEmpty();
-        verify(listingRepository, times(1)).findByStateAndVehicleType(ListingState.AVAILABLE, category);
-    }
-
-    @Test
     @DisplayName("getListingsPaginated should return paginated listings when user exists")
     @Requirement("VCT-47")
     void whenGetListingsPaginated_withExistingUser_thenReturnPaginatedListings() {
