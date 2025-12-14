@@ -5,7 +5,6 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.UUID;
 
-import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -138,15 +137,14 @@ public class RemoveListingSteps {
         );
         removeButton.click();
         
-        // In headless mode, alerts might not always appear, so we handle both cases
-        try {
-            WebDriverWait alertWait = new WebDriverWait(driver, Duration.ofSeconds(3));
-            Alert alert = alertWait.until(ExpectedConditions.alertIsPresent());
-            alert.accept();
-        } catch (Exception e) {
-            // Alert might auto-dismiss in headless mode, which is fine
-            // Continue with the test
-        }
+        // Wait for the confirmation dialog to appear
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("confirm-delete-dialog")));
+        
+        // Click the confirm button in the dialog
+        WebElement confirmButton = wait.until(
+            ExpectedConditions.elementToBeClickable(By.id("confirm-delete-confirm"))
+        );
+        confirmButton.click();
     }
 
     @Then("the system removes the listing from view")
