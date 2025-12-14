@@ -1,5 +1,6 @@
 package com.vaicomtudo.backend.cucumber;
 
+import org.openqa.selenium.UnexpectedAlertBehaviour;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -30,7 +31,7 @@ public class SeleniumConfig {
             options.addArguments("--disable-blink-features=AutomationControlled");
             
             // Set capability to handle unhandled alerts
-            options.setCapability("unexpectedAlertBehaviour", "accept");
+            options.setUnhandledPromptBehaviour(UnexpectedAlertBehaviour.ACCEPT);
 
             driver = new ChromeDriver(options);
         }
