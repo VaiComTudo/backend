@@ -135,7 +135,16 @@ public class RemoveListingSteps {
         WebElement removeButton = wait.until(
             ExpectedConditions.elementToBeClickable(By.id("remove-listing-" + listingId))
         );
-        removeButton.click();
+        
+        // Use JavaScript click to ensure the event fires properly
+        ((org.openqa.selenium.JavascriptExecutor) driver).executeScript("arguments[0].click();", removeButton);
+        
+        // Give React time to update the state and render the dialog
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         
         // Wait for the confirmation dialog overlay to appear and be visible
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("confirm-delete-overlay")));
