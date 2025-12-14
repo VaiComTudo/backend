@@ -1,11 +1,12 @@
 package com.vaicomtudo.backend.service;
 
-import java.util.List;
+import java.math.BigDecimal;
 import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import com.vaicomtudo.backend.data.entity.ListingState;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
+import com.vaicomtudo.backend.data.specification.ListingSpecification;
 import com.vaicomtudo.backend.exception.EmailNotFoundException;
 import com.vaicomtudo.backend.exception.ListingNotFoundException;
 import com.vaicomtudo.backend.exception.MismatchEmailException;
@@ -60,12 +62,22 @@ public class ListingService {
         return listingRepository.findByOwner(user, pageable);
     }
 
-    public List<Listing> getAvailableListingsByCategory(String category) {
-        return listingRepository.findByStateAndVehicleType(ListingState.AVAILABLE, category);
-    }
+    public Page<Listing> searchAvailableListings(
+        String category,
+        String location,
+        BigDecimal minPrice,
+        BigDecimal maxPrice,
+        String currentUserEmail,
+        Pageable pageable
+    ) {
+        Specification<Listing> spec = Specification.where(ListingSpecification.hasState(ListingState.AVAILABLE))
+                .and(ListingSpecification.hasVehicleType(category))
+                .and(ListingSpecification.hasLocation(location))
+                .and(ListingSpecification.hasPriceGreaterThanOrEqual(minPrice))
+                .and(ListingSpecification.hasPriceLessThanOrEqual(maxPrice))
+                .and(ListingSpecification.notOwnedBy(currentUserEmail));
 
-    public List<Listing> getAllAvailableListings() {
-        return listingRepository.findByState(ListingState.AVAILABLE);
+        return listingRepository.findAll(spec, pageable);
     }
 
     @Transactional

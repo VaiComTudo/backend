@@ -197,7 +197,7 @@ public class ViewListingsSteps {
             WebElement vehicleElement = driver.findElement(
                 By.id("listing-vehicle-" + listingId)
             );
-            String expectedVehicle = listing.getVehicle().getType() + " - " +
+            String expectedVehicle = "Vehicle: " + listing.getVehicle().getType() + " - " +
                                     listing.getVehicle().getCondition();
             assert vehicleElement.getText().equals(expectedVehicle) :
                 String.format("Expected vehicle '%s' but got '%s'",
@@ -222,7 +222,7 @@ public class ViewListingsSteps {
                 )
             );
 
-            String expectedState = "Status: " + listing.getState();
+            String expectedState = listing.getState().toString();
             assert stateElement.getText().equals(expectedState) :
                 String.format("Expected state '%s' but got '%s'",
                     expectedState, stateElement.getText());
