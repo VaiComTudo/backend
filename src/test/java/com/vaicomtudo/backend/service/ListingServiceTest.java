@@ -3,6 +3,7 @@ package com.vaicomtudo.backend.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,7 +40,9 @@ import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 import com.vaicomtudo.backend.exception.EmailNotFoundException;
+import com.vaicomtudo.backend.exception.ListingNotFoundException;
 import com.vaicomtudo.backend.exception.MismatchEmailException;
+import com.vaicomtudo.backend.exception.UnauthorizedListingAccessException;
 
 import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
 
@@ -337,5 +341,480 @@ class ListingServiceTest {
         assertThat(result.getNumber()).isEqualTo(1);
         assertThat(result.getSize()).isEqualTo(5);
         verify(listingRepository, times(1)).findByOwner(owner, pageable);
+    }
+
+    @Test
+    @DisplayName("removeListing should successfully remove listing when owner matches")
+    @Requirement("VCT-59")
+    void whenRemoveListing_withValidOwner_thenListingRemoved() {
+        // Arrange
+        listing.setOwner(owner);
+        owner.addListing(listing);
+        
+        when(listingRepository.findById(listing.getId())).thenReturn(Optional.of(listing));
+        
+        // Act
+        listingService.removeListing(listing.getId(), ownerEmail);
+        
+        // Assert
+        assertThat(owner.getListings()).doesNotContain(listing);
+        assertThat(listing.getOwner()).isNull();
+        verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, times(1)).delete(listing);
+    }
+
+    @Test
+    @DisplayName("removeListing should throw ListingNotFoundException when listing does not exist")
+    @Requirement("VCT-59")
+    void whenRemoveListing_withNonExistentListing_thenThrowException() {
+        // Arrange
+        UUID nonExistentId = UUID.randomUUID();
+        when(listingRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+        
+        // Act & Assert
+        assertThatThrownBy(() -> listingService.removeListing(nonExistentId, ownerEmail))
+                .isInstanceOf(ListingNotFoundException.class);
+        
+        verify(listingRepository, times(1)).findById(nonExistentId);
+        verify(listingRepository, never()).delete(any(Listing.class));
+    }
+
+    @Test
+    @DisplayName("removeListing should throw UnauthorizedListingAccessException when user is not owner")
+    @Requirement("VCT-59")
+    void whenRemoveListing_withDifferentOwner_thenThrowException() {
+        // Arrange
+        String differentEmail = "different@email.com";
+        listing.setOwner(owner);
+        
+        when(listingRepository.findById(listing.getId())).thenReturn(Optional.of(listing));
+        
+        // Act & Assert
+        assertThatThrownBy(() -> listingService.removeListing(listing.getId(), differentEmail))
+                .isInstanceOf(UnauthorizedListingAccessException.class);
+        
+        verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, never()).delete(any(Listing.class));
+    }
+
+    @Test
+    @DisplayName("removeListing should throw UnauthorizedListingAccessException when listing has no owner")
+    @Requirement("VCT-59")
+    void whenRemoveListing_withNoOwner_thenThrowException() {
+        // Arrange
+        listing.setOwner(null);
+        
+        when(listingRepository.findById(listing.getId())).thenReturn(Optional.of(listing));
+        
+        // Act & Assert
+        assertThatThrownBy(() -> listingService.removeListing(listing.getId(), ownerEmail))
+                .isInstanceOf(UnauthorizedListingAccessException.class);
+        
+        verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, never()).delete(any(Listing.class));
+    }
+
+    @DisplayName("searchAvailableListings should return listings filtered by category")
+    @Requirement("VCT-32")
+    @SuppressWarnings("unchecked")
+    void whenSearchAvailableListings_withCategory_thenReturnFilteredListings() {
+        // Arrange
+        String category = "bicycle";
+        Listing bicycleListing = new Listing();
+        bicycleListing.setId(UUID.randomUUID());
+        bicycleListing.setOwner(owner);
+        bicycleListing.setTitle("Bicycle Rental");
+        bicycleListing.setDescription("Mountain bike");
+        bicycleListing.setPrice(BigDecimal.valueOf(25.00));
+        bicycleListing.setState(ListingState.AVAILABLE);
+
+        Vehicle bicycleVehicle = new Vehicle();
+        bicycleVehicle.setType("bicycle");
+        bicycleVehicle.setCondition(VehicleCondition.GOOD);
+        bicycleListing.setVehicle(bicycleVehicle);
+        bicycleListing.setPickUpLocation("Aveiro");
+        bicycleListing.setDropOffLocation("Porto");
+
+        List<Listing> listings = new ArrayList<>();
+        listings.add(bicycleListing);
+
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Listing> expectedPage = new PageImpl<>(listings, pageable, listings.size());
+
+        when(listingRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(expectedPage);
+
+        // Act
+        Page<Listing> result = listingService.searchAvailableListings(category, null, null, null, null, pageable);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent().get(0).getVehicle().getType()).isEqualTo("bicycle");
+        verify(listingRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("searchAvailableListings should return listings filtered by location")
+    @Requirement("VCT-32")
+    @SuppressWarnings("unchecked")
+    void whenSearchAvailableListings_withLocation_thenReturnFilteredListings() {
+        // Arrange
+        String location = "Aveiro";
+        listing.setPickUpLocation("Aveiro Centro");
+        listing.setDropOffLocation("Aveiro Station");
+
+        List<Listing> listings = new ArrayList<>();
+        listings.add(listing);
+
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Listing> expectedPage = new PageImpl<>(listings, pageable, listings.size());
+
+        when(listingRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(expectedPage);
+
+        // Act
+        Page<Listing> result = listingService.searchAvailableListings(null, location, null, null, null, pageable);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        verify(listingRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("searchAvailableListings should return listings filtered by price range")
+    @Requirement("VCT-32")
+    @SuppressWarnings("unchecked")
+    void whenSearchAvailableListings_withPriceRange_thenReturnFilteredListings() {
+        // Arrange
+        BigDecimal minPrice = BigDecimal.valueOf(20.00);
+        BigDecimal maxPrice = BigDecimal.valueOf(60.00);
+
+        List<Listing> listings = new ArrayList<>();
+        listings.add(listing);
+
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Listing> expectedPage = new PageImpl<>(listings, pageable, listings.size());
+
+        when(listingRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(expectedPage);
+
+        // Act
+        Page<Listing> result = listingService.searchAvailableListings(null, null, minPrice, maxPrice, null, pageable);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        verify(listingRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("searchAvailableListings should return listings filtered by combined criteria")
+    @Requirement("VCT-34")
+    @SuppressWarnings("unchecked")
+    void whenSearchAvailableListings_withCombinedFilters_thenReturnFilteredListings() {
+        // Arrange
+        String category = "bicycle";
+        String location = "Aveiro";
+        BigDecimal minPrice = BigDecimal.valueOf(20.00);
+        BigDecimal maxPrice = BigDecimal.valueOf(60.00);
+
+        Listing bicycleListing = new Listing();
+        bicycleListing.setId(UUID.randomUUID());
+        bicycleListing.setOwner(owner);
+        bicycleListing.setTitle("Bicycle Rental");
+        bicycleListing.setDescription("Mountain bike");
+        bicycleListing.setPrice(BigDecimal.valueOf(25.00));
+        bicycleListing.setState(ListingState.AVAILABLE);
+
+        Vehicle bicycleVehicle = new Vehicle();
+        bicycleVehicle.setType("bicycle");
+        bicycleVehicle.setCondition(VehicleCondition.GOOD);
+        bicycleListing.setVehicle(bicycleVehicle);
+        bicycleListing.setPickUpLocation("Aveiro Centro");
+        bicycleListing.setDropOffLocation("Aveiro Station");
+
+        List<Listing> listings = new ArrayList<>();
+        listings.add(bicycleListing);
+
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Listing> expectedPage = new PageImpl<>(listings, pageable, listings.size());
+
+        when(listingRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(expectedPage);
+
+        // Act
+        Page<Listing> result = listingService.searchAvailableListings(category, location, minPrice, maxPrice, null, pageable);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent().get(0).getVehicle().getType()).isEqualTo("bicycle");
+        assertThat(result.getContent().get(0).getPrice()).isGreaterThanOrEqualTo(minPrice);
+        assertThat(result.getContent().get(0).getPrice()).isLessThanOrEqualTo(maxPrice);
+        verify(listingRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("searchAvailableListings should return empty page when no listings match criteria")
+    @Requirement("VCT-32")
+    @SuppressWarnings("unchecked")
+    void whenSearchAvailableListings_withNoMatchingListings_thenReturnEmptyPage() {
+        // Arrange
+        String category = "scooter";
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Listing> emptyPage = new PageImpl<>(new ArrayList<>(), pageable, 0);
+
+        when(listingRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(emptyPage);
+
+        // Act
+        Page<Listing> result = listingService.searchAvailableListings(category, null, null, null, null, pageable);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(0);
+        verify(listingRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("searchAvailableListings should exclude listings from authenticated user")
+    @Requirement("VCT-32")
+    @SuppressWarnings("unchecked")
+    void whenSearchAvailableListings_withAuthenticatedUser_thenExcludeOwnListings() {
+        // Arrange
+        String currentUserEmail = "currentuser@email.com";
+        
+        // Create another user's listing
+        Account otherAccount = new Account();
+        otherAccount.setEmail("otheruser@email.com");
+        User otherUser = new User();
+        otherUser.setAccount(otherAccount);
+        
+        Listing otherListing = new Listing();
+        otherListing.setId(UUID.randomUUID());
+        otherListing.setOwner(otherUser);
+        otherListing.setTitle("Other User's Listing");
+        otherListing.setState(ListingState.AVAILABLE);
+        otherListing.setPrice(BigDecimal.valueOf(30.00));
+        
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("bicycle");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        otherListing.setVehicle(vehicle);
+        
+        List<Listing> listings = new ArrayList<>();
+        listings.add(otherListing);
+        
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Listing> expectedPage = new PageImpl<>(listings, pageable, listings.size());
+        
+        when(listingRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(expectedPage);
+        
+        // Act
+        Page<Listing> result = listingService.searchAvailableListings(null, null, null, null, currentUserEmail, pageable);
+        
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getOwner().getAccount().getEmail()).isNotEqualTo(currentUserEmail);
+        verify(listingRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("searchAvailableListings should return all listings when user email is null")
+    @Requirement("VCT-32")
+    @SuppressWarnings("unchecked")
+    void whenSearchAvailableListings_withNullUserEmail_thenReturnAllListings() {
+        // Arrange
+        List<Listing> listings = new ArrayList<>();
+        listings.add(listing);
+        
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Listing> expectedPage = new PageImpl<>(listings, pageable, listings.size());
+        
+        when(listingRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(expectedPage);
+        
+        // Act
+        Page<Listing> result = listingService.searchAvailableListings(null, null, null, null, null, pageable);
+        
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        verify(listingRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("searchAvailableListings should return all listings when user email is empty")
+    @Requirement("VCT-32")
+    @SuppressWarnings("unchecked")
+    void whenSearchAvailableListings_withEmptyUserEmail_thenReturnAllListings() {
+        // Arrange
+        List<Listing> listings = new ArrayList<>();
+        listings.add(listing);
+        
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Listing> expectedPage = new PageImpl<>(listings, pageable, listings.size());
+        
+        when(listingRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(expectedPage);
+        
+        // Act
+        Page<Listing> result = listingService.searchAvailableListings(null, null, null, null, "", pageable);
+        
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        verify(listingRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("searchAvailableListings should exclude own listings with category filter")
+    @Requirement("VCT-32")
+    @SuppressWarnings("unchecked")
+    void whenSearchAvailableListings_withUserEmailAndCategory_thenExcludeOwnListings() {
+        // Arrange
+        String currentUserEmail = "currentuser@email.com";
+        String category = "bicycle";
+        
+        // Create other users' listings
+        Account user1Account = new Account();
+        user1Account.setEmail("user1@email.com");
+        User user1 = new User();
+        user1.setAccount(user1Account);
+        
+        Listing listing1 = new Listing();
+        listing1.setId(UUID.randomUUID());
+        listing1.setOwner(user1);
+        listing1.setTitle("User 1 Bicycle");
+        listing1.setState(ListingState.AVAILABLE);
+        listing1.setPrice(BigDecimal.valueOf(25.00));
+        
+        Vehicle vehicle1 = new Vehicle();
+        vehicle1.setType("bicycle");
+        vehicle1.setCondition(VehicleCondition.GOOD);
+        listing1.setVehicle(vehicle1);
+        
+        Account user2Account = new Account();
+        user2Account.setEmail("user2@email.com");
+        User user2 = new User();
+        user2.setAccount(user2Account);
+        
+        Listing listing2 = new Listing();
+        listing2.setId(UUID.randomUUID());
+        listing2.setOwner(user2);
+        listing2.setTitle("User 2 Bicycle");
+        listing2.setState(ListingState.AVAILABLE);
+        listing2.setPrice(BigDecimal.valueOf(30.00));
+        
+        Vehicle vehicle2 = new Vehicle();
+        vehicle2.setType("bicycle");
+        vehicle2.setCondition(VehicleCondition.GOOD);
+        listing2.setVehicle(vehicle2);
+        
+        List<Listing> listings = new ArrayList<>();
+        listings.add(listing1);
+        listings.add(listing2);
+        
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Listing> expectedPage = new PageImpl<>(listings, pageable, listings.size());
+        
+        when(listingRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(expectedPage);
+        
+        // Act
+        Page<Listing> result = listingService.searchAvailableListings(category, null, null, null, currentUserEmail, pageable);
+        
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent()).noneMatch(l -> l.getOwner().getAccount().getEmail().equals(currentUserEmail));
+        assertThat(result.getContent()).allMatch(l -> l.getVehicle().getType().equals(category));
+        verify(listingRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("searchAvailableListings should return empty page when only own listings match")
+    @Requirement("VCT-32")
+    @SuppressWarnings("unchecked")
+    void whenSearchAvailableListings_withOnlyOwnListingsMatching_thenReturnEmptyPage() {
+        // Arrange
+        String currentUserEmail = ownerEmail;
+        
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Listing> emptyPage = new PageImpl<>(new ArrayList<>(), pageable, 0);
+        
+        when(listingRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(emptyPage);
+        
+        // Act
+        Page<Listing> result = listingService.searchAvailableListings(null, null, null, null, currentUserEmail, pageable);
+        
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(0);
+        verify(listingRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("searchAvailableListings should exclude own listings with combined filters")
+    @Requirement("VCT-34")
+    @SuppressWarnings("unchecked")
+    void whenSearchAvailableListings_withUserEmailAndCombinedFilters_thenExcludeOwnListings() {
+        // Arrange
+        String currentUserEmail = "currentuser@email.com";
+        String category = "bicycle";
+        String location = "Porto";
+        BigDecimal minPrice = BigDecimal.valueOf(20.00);
+        BigDecimal maxPrice = BigDecimal.valueOf(40.00);
+        
+        Account otherAccount = new Account();
+        otherAccount.setEmail("otheruser@email.com");
+        User otherUser = new User();
+        otherUser.setAccount(otherAccount);
+        
+        Listing otherListing = new Listing();
+        otherListing.setId(UUID.randomUUID());
+        otherListing.setOwner(otherUser);
+        otherListing.setTitle("Other User's Bicycle");
+        otherListing.setState(ListingState.AVAILABLE);
+        otherListing.setPrice(BigDecimal.valueOf(30.00));
+        otherListing.setPickUpLocation("Porto Centro");
+        otherListing.setDropOffLocation("Porto Station");
+        
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("bicycle");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        otherListing.setVehicle(vehicle);
+        
+        List<Listing> listings = new ArrayList<>();
+        listings.add(otherListing);
+        
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Listing> expectedPage = new PageImpl<>(listings, pageable, listings.size());
+        
+        when(listingRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(expectedPage);
+        
+        // Act
+        Page<Listing> result = listingService.searchAvailableListings(category, location, minPrice, maxPrice, currentUserEmail, pageable);
+        
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getOwner().getAccount().getEmail()).isEqualTo("otheruser@email.com");
+        assertThat(result.getContent().get(0).getOwner().getAccount().getEmail()).isNotEqualTo(currentUserEmail);
+        verify(listingRepository, times(1)).findAll(any(Specification.class), eq(pageable));
     }
 }

@@ -8,12 +8,18 @@ import com.vaicomtudo.backend.service.ListingService;
 
 import io.micrometer.core.annotation.Timed;
 
-import java.util.List;
+import java.math.BigDecimal;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @RestController
 @RequestMapping("/api/v1/renters")
@@ -26,18 +32,27 @@ public class RenterController {
     }
 
     @GetMapping("/listings")
-    @PreAuthorize("hasRole('NORMAL_USER')")
     @Timed(value = "request.rentersgetlistings")
-    public ResponseEntity<List<Listing>> getAvailableListingsByCategory(
-            @RequestParam(required = false) String category) {
+    public ResponseEntity<Page<Listing>> searchListings(
+        @RequestParam(required = false) String category,
+        @RequestParam(required = false) String location,
+        @RequestParam(required = false) BigDecimal minPrice,
+        @RequestParam(required = false) BigDecimal maxPrice,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size,
+        @RequestParam(defaultValue = "title") String sortBy,
+        @RequestParam(defaultValue = "asc") String sortDirection
+    ) {
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        if (category != null && !category.isEmpty()) {
-            List<Listing> listings = listingService.getAvailableListingsByCategory(category);
-            return ResponseEntity.ok(listings);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUserEmail = null;
+        if (authentication != null && authentication.isAuthenticated() && !authentication.getPrincipal().equals("anonymousUser")) {
+            currentUserEmail = authentication.getName();
         }
 
-        // Se não houver categoria, retorna todos os listings disponíveis
-        List<Listing> listings = listingService.getAllAvailableListings();
+        Page<Listing> listings = listingService.searchAvailableListings(category, location, minPrice, maxPrice, currentUserEmail, pageable);
         return ResponseEntity.ok(listings);
     }
 }

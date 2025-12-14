@@ -1,6 +1,5 @@
 package com.vaicomtudo.backend.boundary;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -15,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 import com.vaicomtudo.backend.config.AbstractIntegrationTest;
 import com.vaicomtudo.backend.data.entity.Account;
@@ -71,7 +69,6 @@ class RenterControllerIT extends AbstractIntegrationTest {
     @Test
     @DisplayName("Integration test: Filter listings by bicycle category")
     @Requirement("VCT-32")
-    @WithMockUser(username = "renter@test.com", roles = {"NORMAL_USER"})
     void whenFilterByBicycleCategory_thenReturnsOnlyBicycles() throws Exception {
         // Create bicycle listing
         Listing bicycleListing = new Listing();
@@ -106,21 +103,23 @@ class RenterControllerIT extends AbstractIntegrationTest {
         listingRepository.save(scooterListing);
 
         // Filter by bicycle category
-        MvcResult result = mockMvc.perform(get("/api/v1/renters/listings")
-                .param("category", "bicycle")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        // Verify only bicycle is returned
-        String content = result.getResponse().getContentAsString();
-        assertThat(content).contains("Mountain Bike").contains("bicycle").doesNotContain("Electric Scooter").doesNotContain("scooter");
+        mockMvc.perform(get("/api/v1/renters/listings")
+            .param("category", "bicycle")
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isArray())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].title").value("Mountain Bike"))
+            .andExpect(jsonPath("$.content[0].vehicle.type").value("bicycle"))
+            .andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.totalPages").value(1))
+            .andExpect(jsonPath("$.number").value(0))
+            .andExpect(jsonPath("$.size").value(20));
     }
 
     @Test
     @DisplayName("Integration test: Only available listings are returned")
     @Requirement("VCT-32")
-    @WithMockUser(username = "renter@test.com", roles = {"NORMAL_USER"})
     void whenFilterByCategory_thenReturnsOnlyAvailableListings() throws Exception {
         // Create available bicycle listing
         Listing availableBicycle = new Listing();
@@ -155,21 +154,19 @@ class RenterControllerIT extends AbstractIntegrationTest {
         listingRepository.save(unavailableBicycle);
 
         // Filter by bicycle category
-        MvcResult result = mockMvc.perform(get("/api/v1/renters/listings")
-                .param("category", "bicycle")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        // Verify only available listing is returned
-        String content = result.getResponse().getContentAsString();
-        assertThat(content).contains("Available Bike").doesNotContain("Unavailable Bike");
+        mockMvc.perform(get("/api/v1/renters/listings")
+            .param("category", "bicycle")
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isArray())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].title").value("Available Bike"))
+            .andExpect(jsonPath("$.totalElements").value(1));
     }
 
     @Test
     @DisplayName("Integration test: Multiple listings of same category are returned")
     @Requirement("VCT-32")
-    @WithMockUser(username = "renter@test.com", roles = {"NORMAL_USER"})
     void whenFilterByCategory_withMultipleListings_thenReturnsAllMatching() throws Exception {
         // Create multiple bicycle listings
         for (int i = 1; i <= 3; i++) {
@@ -191,13 +188,337 @@ class RenterControllerIT extends AbstractIntegrationTest {
 
         // Filter by bicycle category
         mockMvc.perform(get("/api/v1/renters/listings")
-                .param("category", "bicycle")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].vehicle.type").value("bicycle"))
-                .andExpect(jsonPath("$[1].vehicle.type").value("bicycle"))
-                .andExpect(jsonPath("$[2].vehicle.type").value("bicycle"));
+            .param("category", "bicycle")
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isArray())
+            .andExpect(jsonPath("$.content.length()").value(3))
+            .andExpect(jsonPath("$.content[0].vehicle.type").value("bicycle"))
+            .andExpect(jsonPath("$.content[1].vehicle.type").value("bicycle"))
+            .andExpect(jsonPath("$.content[2].vehicle.type").value("bicycle"))
+            .andExpect(jsonPath("$.totalElements").value(3))
+            .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    @Test
+    @DisplayName("Integration test: Filter listings by location")
+    @Requirement("VCT-33")
+    void whenFilterByLocation_thenReturnsMatchingListings() throws Exception {
+        // Create listings in different locations
+        Listing aveiroListing = new Listing();
+        aveiroListing.setOwner(owner);
+        aveiroListing.setTitle("Bike in Aveiro");
+        aveiroListing.setDescription("Available in Aveiro");
+        aveiroListing.setPrice(BigDecimal.valueOf(20.00));
+        aveiroListing.setState(ListingState.AVAILABLE);
+        Vehicle aveiroVehicle = new Vehicle();
+        aveiroVehicle.setType("bicycle");
+        aveiroVehicle.setCondition(VehicleCondition.GOOD);
+        aveiroListing.setVehicle(aveiroVehicle);
+        aveiroListing.setPickUpLocation("Aveiro Centro");
+        aveiroListing.setDropOffLocation("Aveiro Station");
+        listingRepository.save(aveiroListing);
+
+        Listing portoListing = new Listing();
+        portoListing.setOwner(owner);
+        portoListing.setTitle("Bike in Porto");
+        portoListing.setDescription("Available in Porto");
+        portoListing.setPrice(BigDecimal.valueOf(25.00));
+        portoListing.setState(ListingState.AVAILABLE);
+        Vehicle portoVehicle = new Vehicle();
+        portoVehicle.setType("bicycle");
+        portoVehicle.setCondition(VehicleCondition.GOOD);
+        portoListing.setVehicle(portoVehicle);
+        portoListing.setPickUpLocation("Porto Downtown");
+        portoListing.setDropOffLocation("Porto Airport");
+        listingRepository.save(portoListing);
+
+        // Filter by Aveiro location
+        mockMvc.perform(get("/api/v1/renters/listings")
+            .param("location", "Aveiro")
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isArray())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].title").value("Bike in Aveiro"))
+            .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    @DisplayName("Integration test: Filter listings by price range")
+    @Requirement("VCT-34")
+    void whenFilterByPriceRange_thenReturnsMatchingListings() throws Exception {
+        // Create listings with different prices
+        Listing cheapListing = new Listing();
+        cheapListing.setOwner(owner);
+        cheapListing.setTitle("Cheap Bike");
+        cheapListing.setDescription("Budget option");
+        cheapListing.setPrice(BigDecimal.valueOf(10.00));
+        cheapListing.setState(ListingState.AVAILABLE);
+        Vehicle cheapVehicle = new Vehicle();
+        cheapVehicle.setType("bicycle");
+        cheapVehicle.setCondition(VehicleCondition.NEEDS_WORK);
+        cheapListing.setVehicle(cheapVehicle);
+        cheapListing.setPickUpLocation("Location A");
+        cheapListing.setDropOffLocation("Location B");
+        listingRepository.save(cheapListing);
+
+        Listing midListing = new Listing();
+        midListing.setOwner(owner);
+        midListing.setTitle("Mid-range Bike");
+        midListing.setDescription("Good quality");
+        midListing.setPrice(BigDecimal.valueOf(25.00));
+        midListing.setState(ListingState.AVAILABLE);
+        Vehicle midVehicle = new Vehicle();
+        midVehicle.setType("bicycle");
+        midVehicle.setCondition(VehicleCondition.GOOD);
+        midListing.setVehicle(midVehicle);
+        midListing.setPickUpLocation("Location C");
+        midListing.setDropOffLocation("Location D");
+        listingRepository.save(midListing);
+
+        Listing expensiveListing = new Listing();
+        expensiveListing.setOwner(owner);
+        expensiveListing.setTitle("Premium Bike");
+        expensiveListing.setDescription("Top quality");
+        expensiveListing.setPrice(BigDecimal.valueOf(50.00));
+        expensiveListing.setState(ListingState.AVAILABLE);
+        Vehicle expensiveVehicle = new Vehicle();
+        expensiveVehicle.setType("bicycle");
+        expensiveVehicle.setCondition(VehicleCondition.EXCELLENT);
+        expensiveListing.setVehicle(expensiveVehicle);
+        expensiveListing.setPickUpLocation("Location E");
+        expensiveListing.setDropOffLocation("Location F");
+        listingRepository.save(expensiveListing);
+
+        // Filter by price range 20-30
+        mockMvc.perform(get("/api/v1/renters/listings")
+            .param("minPrice", "20")
+            .param("maxPrice", "30")
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isArray())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].title").value("Mid-range Bike"))
+            .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    @DisplayName("Integration test: Authenticated user does not see own listings")
+    @Requirement("VCT-33")
+    @WithMockUser(username = "renter@test.com")
+    void whenAuthenticated_thenOwnListingsAreExcluded() throws Exception {
+        // Create a listing owned by the authenticated user
+        Listing ownListing = new Listing();
+        ownListing.setOwner(owner);
+        ownListing.setTitle("Own Listing");
+        ownListing.setDescription("Should not appear");
+        ownListing.setPrice(BigDecimal.valueOf(100.00));
+        ownListing.setState(ListingState.AVAILABLE);
+        Vehicle v = new Vehicle();
+        v.setType("bicycle");
+        v.setCondition(VehicleCondition.GOOD);
+        ownListing.setVehicle(v);
+        ownListing.setPickUpLocation("Somewhere");
+        ownListing.setDropOffLocation("Elsewhere");
+        listingRepository.save(ownListing);
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/renters/listings")
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isArray())
+            .andExpect(jsonPath("$.content.length()").value(0));
+    }
+    @Test
+    @DisplayName("Integration test: Unauthenticated user sees all listings")
+    @Requirement("VCT-33")
+    void whenUnauthenticated_thenAllListingsAreReturned() throws Exception {
+        // Create a listing owned by a user
+        Listing publicListing = new Listing();
+        publicListing.setOwner(owner);
+        publicListing.setTitle("Public Listing");
+        publicListing.setDescription("Should appear");
+        publicListing.setPrice(BigDecimal.valueOf(100.00));
+        publicListing.setState(ListingState.AVAILABLE);
+        Vehicle v = new Vehicle();
+        v.setType("bicycle");
+        v.setCondition(VehicleCondition.GOOD);
+        publicListing.setVehicle(v);
+        publicListing.setPickUpLocation("Somewhere");
+        publicListing.setDropOffLocation("Elsewhere");
+        listingRepository.save(publicListing);
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/renters/listings")
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isArray())
+            .andExpect(jsonPath("$.content.length()").value(1));
+    }
+    @Test
+    @DisplayName("Integration test: Filter listings by combined criteria")
+    @Requirement("VCT-34")
+    void whenFilterByCombinedCriteria_thenReturnsMatchingListings() throws Exception {
+        // Create bicycle listing matching all criteria
+        Listing matchingListing = new Listing();
+        matchingListing.setOwner(owner);
+        matchingListing.setTitle("Perfect Bike");
+        matchingListing.setDescription("Matches all criteria");
+        matchingListing.setPrice(BigDecimal.valueOf(25.00));
+        matchingListing.setState(ListingState.AVAILABLE);
+        Vehicle matchingVehicle = new Vehicle();
+        matchingVehicle.setType("bicycle");
+        matchingVehicle.setCondition(VehicleCondition.EXCELLENT);
+        matchingListing.setVehicle(matchingVehicle);
+        matchingListing.setPickUpLocation("Aveiro Centro");
+        matchingListing.setDropOffLocation("Aveiro Station");
+        listingRepository.save(matchingListing);
+
+        // Create scooter listing that won't match
+        Listing nonMatchingListing = new Listing();
+        nonMatchingListing.setOwner(owner);
+        nonMatchingListing.setTitle("Aveiro Scooter");
+        nonMatchingListing.setDescription("Wrong category");
+        nonMatchingListing.setPrice(BigDecimal.valueOf(25.00));
+        nonMatchingListing.setState(ListingState.AVAILABLE);
+        Vehicle nonMatchingVehicle = new Vehicle();
+        nonMatchingVehicle.setType("scooter");
+        nonMatchingVehicle.setCondition(VehicleCondition.GOOD);
+        nonMatchingListing.setVehicle(nonMatchingVehicle);
+        nonMatchingListing.setPickUpLocation("Aveiro Centro");
+        nonMatchingListing.setDropOffLocation("Aveiro Station");
+        listingRepository.save(nonMatchingListing);
+
+        // Filter by category=bicycle, location=Aveiro, price 20-30
+        mockMvc.perform(get("/api/v1/renters/listings")
+            .param("category", "bicycle")
+            .param("location", "Aveiro")
+            .param("minPrice", "20")
+            .param("maxPrice", "30")
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isArray())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].title").value("Perfect Bike"))
+            .andExpect(jsonPath("$.content[0].vehicle.type").value("bicycle"))
+            .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    @DisplayName("Integration test: Authenticated user sees other users' listings but not own")
+    @Requirement("VCT-33")
+    @WithMockUser(username = "renter@test.com")
+    void whenAuthenticatedWithCategory_thenOwnListingsAreExcludedButOthersShown() throws Exception {
+        // Create another user
+        Account otherAccount = new Account();
+        otherAccount.setName("Other User");
+        otherAccount.setEmail("other@test.com");
+        otherAccount.setPasswordHash("hashedpassword");
+        otherAccount = accountRepository.save(otherAccount);
+
+        User otherUser = new User();
+        otherUser.setAccount(otherAccount);
+        otherUser.setBirthdate(LocalDate.of(1995, 5, 15));
+        otherUser = userRepository.save(otherUser);
+
+        // Create listing by authenticated user (should be excluded)
+        Listing ownListing = new Listing();
+        ownListing.setOwner(owner);
+        ownListing.setTitle("Own Bicycle");
+        ownListing.setDescription("Should not appear");
+        ownListing.setPrice(BigDecimal.valueOf(20.00));
+        ownListing.setState(ListingState.AVAILABLE);
+        Vehicle ownVehicle = new Vehicle();
+        ownVehicle.setType("bicycle");
+        ownVehicle.setCondition(VehicleCondition.GOOD);
+        ownListing.setVehicle(ownVehicle);
+        ownListing.setPickUpLocation("Location A");
+        ownListing.setDropOffLocation("Location B");
+        listingRepository.save(ownListing);
+
+        // Create listing by other user (should appear)
+        Listing otherListing = new Listing();
+        otherListing.setOwner(otherUser);
+        otherListing.setTitle("Other's Bicycle");
+        otherListing.setDescription("Should appear");
+        otherListing.setPrice(BigDecimal.valueOf(25.00));
+        otherListing.setState(ListingState.AVAILABLE);
+        Vehicle otherVehicle = new Vehicle();
+        otherVehicle.setType("bicycle");
+        otherVehicle.setCondition(VehicleCondition.GOOD);
+        otherListing.setVehicle(otherVehicle);
+        otherListing.setPickUpLocation("Location C");
+        otherListing.setDropOffLocation("Location D");
+        listingRepository.save(otherListing);
+
+        // Filter by bicycle category as authenticated user
+        mockMvc.perform(get("/api/v1/renters/listings")
+            .param("category", "bicycle")
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isArray())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].title").value("Other's Bicycle"))
+            .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    @DisplayName("Integration test: Authenticated user with combined filters excludes own listings")
+    @Requirement("VCT-34")
+    @WithMockUser(username = "renter@test.com")
+    void whenAuthenticatedWithCombinedFilters_thenOwnListingsAreExcluded() throws Exception {
+        // Create another user
+        Account otherAccount = new Account();
+        otherAccount.setName("Other User");
+        otherAccount.setEmail("other@test.com");
+        otherAccount.setPasswordHash("hashedpassword");
+        otherAccount = accountRepository.save(otherAccount);
+
+        User otherUser = new User();
+        otherUser.setAccount(otherAccount);
+        otherUser.setBirthdate(LocalDate.of(1995, 5, 15));
+        otherUser = userRepository.save(otherUser);
+
+        // Create listing by authenticated user matching criteria (should be excluded)
+        Listing ownListing = new Listing();
+        ownListing.setOwner(owner);
+        ownListing.setTitle("Own Perfect Bike");
+        ownListing.setDescription("Matches but should not appear");
+        ownListing.setPrice(BigDecimal.valueOf(25.00));
+        ownListing.setState(ListingState.AVAILABLE);
+        Vehicle ownVehicle = new Vehicle();
+        ownVehicle.setType("bicycle");
+        ownVehicle.setCondition(VehicleCondition.GOOD);
+        ownListing.setVehicle(ownVehicle);
+        ownListing.setPickUpLocation("Aveiro Centro");
+        ownListing.setDropOffLocation("Aveiro Station");
+        listingRepository.save(ownListing);
+
+        // Create listing by other user matching criteria (should appear)
+        Listing otherListing = new Listing();
+        otherListing.setOwner(otherUser);
+        otherListing.setTitle("Other's Perfect Bike");
+        otherListing.setDescription("Matches and should appear");
+        otherListing.setPrice(BigDecimal.valueOf(25.00));
+        otherListing.setState(ListingState.AVAILABLE);
+        Vehicle otherVehicle = new Vehicle();
+        otherVehicle.setType("bicycle");
+        otherVehicle.setCondition(VehicleCondition.EXCELLENT);
+        otherListing.setVehicle(otherVehicle);
+        otherListing.setPickUpLocation("Aveiro Downtown");
+        otherListing.setDropOffLocation("Aveiro Port");
+        listingRepository.save(otherListing);
+
+        // Filter with combined criteria as authenticated user
+        mockMvc.perform(get("/api/v1/renters/listings")
+            .param("category", "bicycle")
+            .param("location", "Aveiro")
+            .param("minPrice", "20")
+            .param("maxPrice", "30")
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isArray())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].title").value("Other's Perfect Bike"))
+            .andExpect(jsonPath("$.totalElements").value(1));
     }
 }
