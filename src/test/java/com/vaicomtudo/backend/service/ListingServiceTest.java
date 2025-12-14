@@ -154,9 +154,7 @@ class ListingServiceTest {
         Set<Listing> result = listingService.getListings(ownerEmail);
 
         // Assert
-        assertThat(result).isNotNull();
-        assertThat(result).hasSize(1);
-        assertThat(result).contains(listing);
+        assertThat(result).isNotNull().hasSize(1).contains(listing);
     }
 
     @Test
@@ -171,8 +169,7 @@ class ListingServiceTest {
         Set<Listing> result = listingService.getListings(ownerEmail);
 
         // Assert
-        assertThat(result).isNotNull();
-        assertThat(result).isEmpty();
+        assertThat(result).isNotNull().isEmpty();
     }
 
     @Test
@@ -220,7 +217,7 @@ class ListingServiceTest {
         assertThat(result.getContent()).hasSize(2);
         assertThat(result.getTotalElements()).isEqualTo(2);
         assertThat(result.getTotalPages()).isEqualTo(1);
-        assertThat(result.getNumber()).isEqualTo(0);
+        assertThat(result.getNumber()).isZero();
         assertThat(result.getSize()).isEqualTo(10);
         verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
         verify(listingRepository, times(1)).findByOwner(owner, pageable);
@@ -243,8 +240,8 @@ class ListingServiceTest {
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getContent()).isEmpty();
-        assertThat(result.getTotalElements()).isEqualTo(0);
-        assertThat(result.getTotalPages()).isEqualTo(0);
+        assertThat(result.getTotalElements()).isZero();
+        assertThat(result.getTotalPages()).isZero();
         verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
         verify(listingRepository, times(1)).findByOwner(owner, pageable);
     }

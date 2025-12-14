@@ -133,8 +133,7 @@ class OwnerControllerIT extends AbstractIntegrationTest {
 
         // Verify we got both listings back
         String content = result.getResponse().getContentAsString();
-        assertThat(content).contains("Integration Test Item 1");
-        assertThat(content).contains("Integration Test Item 2");
+        assertThat(content).contains("Integration Test Item 1").contains("Integration Test Item 2");
     }
 
     @Test
