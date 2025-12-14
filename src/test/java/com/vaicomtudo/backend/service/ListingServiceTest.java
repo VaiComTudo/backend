@@ -325,7 +325,7 @@ class ListingServiceTest {
                 .isInstanceOf(ListingNotFoundException.class);
         
         verify(listingRepository, times(1)).findById(nonExistentId);
-        verify(listingRepository, never()).delete(any());
+        verify(listingRepository, never()).delete(any(Listing.class));
     }
 
     @Test
@@ -343,7 +343,7 @@ class ListingServiceTest {
                 .isInstanceOf(UnauthorizedListingAccessException.class);
         
         verify(listingRepository, times(1)).findById(listing.getId());
-        verify(listingRepository, never()).delete(any());
+        verify(listingRepository, never()).delete(any(Listing.class));
     }
 
     @Test
@@ -360,7 +360,9 @@ class ListingServiceTest {
                 .isInstanceOf(UnauthorizedListingAccessException.class);
         
         verify(listingRepository, times(1)).findById(listing.getId());
-        verify(listingRepository, never()).delete(any());
+        verify(listingRepository, never()).delete(any(Listing.class));
+    }
+
     @DisplayName("searchAvailableListings should return listings filtered by category")
     @Requirement("VCT-32")
     @SuppressWarnings("unchecked")
