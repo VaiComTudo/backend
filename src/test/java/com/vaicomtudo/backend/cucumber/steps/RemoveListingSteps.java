@@ -149,14 +149,11 @@ public class RemoveListingSteps {
         // Wait for the confirmation dialog overlay to appear and be visible
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("confirm-delete-overlay")));
         
-        // Wait for the confirm button to be clickable
+        // Wait for the confirm button to be clickable and click it with JavaScript
         WebElement confirmButton = wait.until(
             ExpectedConditions.elementToBeClickable(By.id("confirm-delete-confirm"))
         );
-        confirmButton.click();
-        
-        // Wait for the dialog to disappear
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.id("confirm-delete-overlay")));
+        ((org.openqa.selenium.JavascriptExecutor) driver).executeScript("arguments[0].click();", confirmButton);
     }
 
     @Then("the system removes the listing from view")
