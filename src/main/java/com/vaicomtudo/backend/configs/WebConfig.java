@@ -13,8 +13,12 @@ public class WebConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                    .allowedOrigins("http://localhost:5173")
-                    .allowedMethods("GET", "POST", "PUT", "DELETE")
+                    .allowedOrigins(
+                        "http://localhost:5173",
+                        "http://deti-tqs-05:5173",
+                        "http://deti-tqs-05.ua.pt:5173"
+                    )
+                    .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                     .allowedHeaders("*")
                     .allowCredentials(true);
             }
