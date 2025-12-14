@@ -27,6 +27,10 @@ public class SeleniumConfig {
             options.addArguments("--disable-dev-shm-usage");
             options.addArguments("--disable-gpu");
             options.addArguments("--window-size=1920,1080");
+            options.addArguments("--disable-blink-features=AutomationControlled");
+            
+            // Set capability to handle unhandled alerts
+            options.setCapability("unexpectedAlertBehaviour", "accept");
 
             driver = new ChromeDriver(options);
         }
