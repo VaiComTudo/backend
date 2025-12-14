@@ -4,7 +4,10 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -41,7 +44,9 @@ import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.exception.EmailNotFoundException;
+import com.vaicomtudo.backend.exception.ListingNotFoundException;
 import com.vaicomtudo.backend.exception.MismatchEmailException;
+import com.vaicomtudo.backend.exception.UnauthorizedListingAccessException;
 import com.vaicomtudo.backend.config.AbstractIntegrationTest;
 import com.vaicomtudo.backend.service.ListingService;
 
@@ -257,4 +262,48 @@ class OwnerControllerTest extends AbstractIntegrationTest {
             .andExpect(status().isNotFound());
     }
 
+    @Test
+    @DisplayName("DELETE /api/v1/owners/listings/{listingId} should successfully remove listing")
+    @Requirement("VCT-59")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    void whenRemoveListing_withValidOwner_thenReturns204() throws Exception {
+        // Arrange
+        UUID listingId = UUID.randomUUID();
+        doNothing().when(listingService).removeListing(listingId, ownerEmail);
+
+        // Act & Assert
+        mockMvc.perform(delete("/api/v1/owners/listings/" + listingId)
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/owners/listings/{listingId} should return 404 when listing not found")
+    @Requirement("VCT-59")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    void whenRemoveListing_withNonExistentListing_thenReturns404() throws Exception {
+        // Arrange
+        UUID listingId = UUID.randomUUID();
+        doThrow(new ListingNotFoundException()).when(listingService).removeListing(listingId, ownerEmail);
+
+        // Act & Assert
+        mockMvc.perform(delete("/api/v1/owners/listings/" + listingId)
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/owners/listings/{listingId} should return 403 when user is not owner")
+    @Requirement("VCT-59")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    void whenRemoveListing_withUnauthorizedUser_thenReturns403() throws Exception {
+        // Arrange
+        UUID listingId = UUID.randomUUID();
+        doThrow(new UnauthorizedListingAccessException()).when(listingService).removeListing(listingId, ownerEmail);
+
+        // Act & Assert
+        mockMvc.perform(delete("/api/v1/owners/listings/" + listingId)
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isForbidden());
+    }
 }
