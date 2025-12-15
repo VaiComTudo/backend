@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -305,5 +306,118 @@ class OwnerControllerTest extends AbstractIntegrationTest {
         mockMvc.perform(delete("/api/v1/owners/listings/" + listingId)
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/owners/listings/{listingId} should update listing successfully")
+    @Requirement("VCT-58")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    void whenUpdateListing_withValidData_thenReturns200() throws Exception {
+        // Arrange
+        UUID listingId = UUID.randomUUID();
+        Listing updatedListing = new Listing();
+        updatedListing.setId(listingId);
+        updatedListing.setTitle("Updated Title");
+        updatedListing.setDescription("Updated Description");
+        updatedListing.setPrice(BigDecimal.valueOf(75.00));
+        updatedListing.setState(ListingState.AVAILABLE);
+        
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("Bike");
+        vehicle.setCondition(VehicleCondition.EXCELLENT);
+        updatedListing.setVehicle(vehicle);
+        updatedListing.setPickUpLocation("New Pickup");
+        updatedListing.setDropOffLocation("New Dropoff");
+
+        when(listingService.updateListing(eq(listingId), any(Listing.class), eq(ownerEmail)))
+            .thenReturn(updatedListing);
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/owners/listings/" + listingId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updatedListing)))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.title", is("Updated Title")))
+            .andExpect(jsonPath("$.description", is("Updated Description")))
+            .andExpect(jsonPath("$.price", is(75.00)))
+            .andExpect(jsonPath("$.vehicle.type", is("Bike")))
+            .andExpect(jsonPath("$.vehicle.condition", is("EXCELLENT")));
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/owners/listings/{listingId} should return 404 when listing not found")
+    @Requirement("VCT-58")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    void whenUpdateListing_withNonExistentListing_thenReturns404() throws Exception {
+        // Arrange
+        UUID listingId = UUID.randomUUID();
+        Listing updateData = new Listing();
+        updateData.setTitle("Updated Title");
+        
+        when(listingService.updateListing(eq(listingId), any(Listing.class), eq(ownerEmail)))
+            .thenThrow(new ListingNotFoundException());
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/owners/listings/" + listingId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateData)))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/owners/listings/{listingId} should return 403 when user is not owner")
+    @Requirement("VCT-58")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    void whenUpdateListing_withUnauthorizedUser_thenReturns403() throws Exception {
+        // Arrange
+        UUID listingId = UUID.randomUUID();
+        Listing updateData = new Listing();
+        updateData.setTitle("Updated Title");
+        
+        when(listingService.updateListing(eq(listingId), any(Listing.class), eq(ownerEmail)))
+            .thenThrow(new UnauthorizedListingAccessException());
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/owners/listings/" + listingId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateData)))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/owners/listings/{listingId} should allow partial updates")
+    @Requirement("VCT-58")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    void whenUpdateListing_withPartialData_thenReturns200() throws Exception {
+        // Arrange
+        UUID listingId = UUID.randomUUID();
+        Listing partialUpdate = new Listing();
+        partialUpdate.setId(listingId);
+        partialUpdate.setPrice(BigDecimal.valueOf(99.99));
+        
+        Listing updatedListing = new Listing();
+        updatedListing.setId(listingId);
+        updatedListing.setTitle("Test Item");
+        updatedListing.setDescription("Test Description");
+        updatedListing.setPrice(BigDecimal.valueOf(99.99));
+        updatedListing.setState(ListingState.AVAILABLE);
+        
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("Car");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        updatedListing.setVehicle(vehicle);
+        updatedListing.setPickUpLocation("Test Pickup");
+        updatedListing.setDropOffLocation("Test Dropoff");
+
+        when(listingService.updateListing(eq(listingId), any(Listing.class), eq(ownerEmail)))
+            .thenReturn(updatedListing);
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/owners/listings/" + listingId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(partialUpdate)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.price", is(99.99)));
     }
 }
