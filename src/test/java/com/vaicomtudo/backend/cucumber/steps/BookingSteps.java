@@ -232,20 +232,60 @@ public class BookingSteps {
         // Use JavaScript click to ensure the event fires properly
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", submitButton);
 
-        // Check if there's an error in the modal
+        // Wait for the request to process
         try {
-            Thread.sleep(1000);
-            WebElement errorElement = driver.findElement(By.id("booking-error"));
-            if (errorElement.isDisplayed()) {
-                throw new AssertionError("Booking failed with error: " + errorElement.getText());
-            }
-        } catch (org.openqa.selenium.NoSuchElementException e) {
-            // No error - continue
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
 
-        // Wait for the modal to close first (modal has 500ms delay)
+        // Check the modal status - either it has an error or it should be closing
+        boolean modalStillPresent = true;
+        try {
+            WebElement modal = driver.findElement(By.id("booking-modal"));
+            modalStillPresent = modal.isDisplayed();
+            
+            if (modalStillPresent) {
+                // Check for error
+                try {
+                    WebElement errorElement = driver.findElement(By.id("booking-error"));
+                    if (errorElement.isDisplayed()) {
+                        throw new AssertionError("Booking failed with error: " + errorElement.getText());
+                    }
+                } catch (org.openqa.selenium.NoSuchElementException e) {
+                    // No error element found
+                }
+                
+                // Check if button is still disabled (request in progress)
+                WebElement submitBtn = driver.findElement(By.id("submit-booking-button"));
+                boolean isDisabled = !submitBtn.isEnabled() || submitBtn.getAttribute("disabled") != null;
+                if (isDisabled) {
+                    // Still processing, wait a bit more
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
+        } catch (org.openqa.selenium.NoSuchElementException e) {
+            // Modal already gone
+            modalStillPresent = false;
+        }
+
+        // If modal is still present, try to see what's on the page
+        if (modalStillPresent) {
+            try {
+                String pageSource = driver.getPageSource();
+                System.out.println("Modal still present. Page contains 'booking-error': " + pageSource.contains("booking-error"));
+                System.out.println("Submit button disabled: " + driver.findElement(By.id("submit-booking-button")).getAttribute("disabled"));
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+
+        // Now wait for the modal to close (with reduced timeout since we already waited)
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         wait.until(ExpectedConditions.invisibilityOfElementLocated(By.id("booking-modal")));
 
         // Now wait for success toast to appear - it should be visible after modal closes
