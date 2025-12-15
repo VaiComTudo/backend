@@ -16,6 +16,7 @@ import com.vaicomtudo.backend.data.entity.Account;
 import com.vaicomtudo.backend.data.entity.Role;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.repository.AccountRepository;
+import com.vaicomtudo.backend.data.repository.BookingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
 import io.cucumber.java.en.Given;
@@ -36,6 +37,9 @@ public class CreateListingSteps {
     @Autowired
     private AccountRepository accountRepository;
 
+    @Autowired
+    private BookingRepository bookingRepository;
+
     @Value("${frontend.url}")
     private String frontendUrl;
 
@@ -43,6 +47,7 @@ public class CreateListingSteps {
     private String testPassword = "pass123";
 
     public void registerTestAccount() {
+        bookingRepository.deleteAll();
         userRepository.deleteAll();
 
         Account account = Account.builder()

@@ -1,6 +1,7 @@
 package com.vaicomtudo.backend.service;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -10,9 +11,12 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.vaicomtudo.backend.data.entity.Booking;
+import com.vaicomtudo.backend.data.entity.BookingState;
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.data.entity.ListingState;
 import com.vaicomtudo.backend.data.entity.User;
+import com.vaicomtudo.backend.data.repository.BookingRepository;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 import com.vaicomtudo.backend.data.specification.ListingSpecification;
@@ -26,10 +30,12 @@ public class ListingService {
 
     private ListingRepository listingRepository;
     private UserRepository userRepository;
+    private BookingRepository bookingRepository;
 
-    public ListingService(ListingRepository listingRepository, UserRepository userRepository) {
+    public ListingService(ListingRepository listingRepository, UserRepository userRepository, BookingRepository bookingRepository) {
         this.listingRepository = listingRepository;
         this.userRepository = userRepository;
+        this.bookingRepository = bookingRepository;
     }
 
     public Listing saveListing(Listing listing, String email) {
@@ -52,14 +58,16 @@ public class ListingService {
         User user = userRepository.findByAccountEmail(email)
             .orElseThrow(EmailNotFoundException::new);
 
-        return user.getListings();
+        return user.getListings().stream()
+            .filter(listing -> listing.getState() != ListingState.INVALID)
+            .collect(java.util.stream.Collectors.toSet());
     }
 
     public Page<Listing> getListingsPaginated(String email, Pageable pageable) {
         User user = userRepository.findByAccountEmail(email)
             .orElseThrow(EmailNotFoundException::new);
 
-        return listingRepository.findByOwner(user, pageable);
+        return listingRepository.findByOwnerExcludingInvalid(user, ListingState.INVALID, pageable);
     }
 
     public Page<Listing> searchAvailableListings(
@@ -96,15 +104,19 @@ public class ListingService {
             !listing.getOwner().getAccount().getEmail().equals(email)) {
             throw new UnauthorizedListingAccessException();
         }
-
-        // TODO: When booking system is implemented, cancel any pending booking requests here
-        // Example: bookingService.cancelPendingBookingsForListing(listingId);
         
-        // Remove the listing using the helper method to maintain bidirectional relationship
-        User owner = listing.getOwner();
-        owner.removeListing(listing);
+        // Cancel REQUESTED and ACCEPTED bookings for this listing
+        List<Booking> bookings = bookingRepository.findByListing(listing);
+        for (Booking booking : bookings) {
+            if (booking.getState() == BookingState.REQUESTED || 
+                booking.getState() == BookingState.ACCEPTED) {
+                booking.setState(BookingState.CANCELLED);
+                bookingRepository.save(booking);
+            }
+        }
         
-        // Delete the listing from the repository
-        listingRepository.delete(listing);
+        // Mark the listing as INVALID (soft delete)
+        listing.setState(ListingState.INVALID);
+        listingRepository.save(listing);
     }
 }

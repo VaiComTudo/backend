@@ -296,17 +296,19 @@ class ListingServiceTest {
         // Arrange
         listing.setOwner(owner);
         owner.addListing(listing);
+        listing.setState(ListingState.AVAILABLE);
         
         when(listingRepository.findById(listing.getId())).thenReturn(Optional.of(listing));
+        when(listingRepository.save(any(Listing.class))).thenReturn(listing);
         
         // Act
         listingService.removeListing(listing.getId(), ownerEmail);
         
         // Assert
-        assertThat(owner.getListings()).doesNotContain(listing);
-        assertThat(listing.getOwner()).isNull();
+        assertThat(listing.getState()).isEqualTo(ListingState.INVALID);
         verify(listingRepository, times(1)).findById(listing.getId());
-        verify(listingRepository, times(1)).delete(listing);
+        verify(listingRepository, times(1)).save(listing);
+        verify(listingRepository, never()).delete(any(Listing.class));
     }
 
     @Test
@@ -322,6 +324,7 @@ class ListingServiceTest {
                 .isInstanceOf(ListingNotFoundException.class);
         
         verify(listingRepository, times(1)).findById(nonExistentId);
+        verify(listingRepository, never()).save(any(Listing.class));
         verify(listingRepository, never()).delete(any(Listing.class));
     }
 
@@ -340,6 +343,7 @@ class ListingServiceTest {
                 .isInstanceOf(UnauthorizedListingAccessException.class);
         
         verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, never()).save(any(Listing.class));
         verify(listingRepository, never()).delete(any(Listing.class));
     }
 
@@ -357,6 +361,7 @@ class ListingServiceTest {
                 .isInstanceOf(UnauthorizedListingAccessException.class);
         
         verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, never()).save(any(Listing.class));
         verify(listingRepository, never()).delete(any(Listing.class));
     }
 
