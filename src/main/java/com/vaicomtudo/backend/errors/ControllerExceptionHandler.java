@@ -12,7 +12,11 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.vaicomtudo.backend.exception.BookingNotFoundException;
+import com.vaicomtudo.backend.exception.InvalidBookingDatesException;
+import com.vaicomtudo.backend.exception.InvalidBookingStateTransitionException;
 import com.vaicomtudo.backend.exception.ListingNotFoundException;
+import com.vaicomtudo.backend.exception.UnauthorizedBookingAccessException;
 import com.vaicomtudo.backend.exception.UnauthorizedListingAccessException;
 
 import lombok.extern.slf4j.Slf4j;
@@ -99,6 +103,42 @@ public class ControllerExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleUnauthorizedListingAccess(UnauthorizedListingAccessException e) {
         log.error(e.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body(Map.of(
+                error, e.getMessage()
+            ));
+    }
+
+    @ExceptionHandler(BookingNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleBookingNotFound(BookingNotFoundException e) {
+        log.error(e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(Map.of(
+                error, e.getMessage()
+            ));
+    }
+
+    @ExceptionHandler(UnauthorizedBookingAccessException.class)
+    public ResponseEntity<Map<String, Object>> handleUnauthorizedBookingAccess(UnauthorizedBookingAccessException e) {
+        log.error(e.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body(Map.of(
+                error, e.getMessage()
+            ));
+    }
+
+    @ExceptionHandler(InvalidBookingDatesException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidBookingDates(InvalidBookingDatesException e) {
+        log.error(e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of(
+                error, e.getMessage()
+            ));
+    }
+
+    @ExceptionHandler(InvalidBookingStateTransitionException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidBookingStateTransition(InvalidBookingStateTransitionException e) {
+        log.error(e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(Map.of(
                 error, e.getMessage()
             ));
