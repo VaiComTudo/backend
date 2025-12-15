@@ -229,11 +229,12 @@ public class BookingSteps {
             ExpectedConditions.elementToBeClickable(By.id("submit-booking-button"))
         );
         
-        submitButton.click();
+        // Use JavaScript click to ensure the event fires properly
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", submitButton);
 
-        // Wait a moment for the request to process
+        // Wait for React to update the state
         try {
-            Thread.sleep(500);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -248,7 +249,10 @@ public class BookingSteps {
             // No error - continue
         }
 
-        // Wait for success toast to appear (modal may still be closing)
+        // Wait for the modal to close
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.id("booking-modal")));
+
+        // Wait for success toast to appear
         WebElement successToast = wait.until(
             ExpectedConditions.visibilityOfElementLocated(By.id("booking-success-toast"))
         );
