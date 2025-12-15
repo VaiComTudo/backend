@@ -529,7 +529,7 @@ class BookingControllerIT extends AbstractIntegrationTest {
             .andExpect(jsonPath("$.state").value("REQUESTED"))
             .andReturn().getResponse().getContentAsString();
 
-        String bookingId = objectMapper.readTree(bookingIdString).get("id").asText();
+        String bookingId = objectMapper.readTree(bookingIdString).get("id").asString();
 
         // Step 2: Owner accepts booking
         BookingStateUpdateRequest acceptRequest = BookingStateUpdateRequest.builder()
