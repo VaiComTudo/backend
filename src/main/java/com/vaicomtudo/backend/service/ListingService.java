@@ -107,4 +107,48 @@ public class ListingService {
         // Delete the listing from the repository
         listingRepository.delete(listing);
     }
+
+    @Transactional
+    public Listing updateListing(UUID listingId, Listing updatedData, String email) {
+        // Fetch the existing listing from the database
+        Listing existingListing = listingRepository.findById(listingId)
+            .orElseThrow(ListingNotFoundException::new);
+        
+        // Verify that the user is the owner of the listing
+        if (existingListing.getOwner() == null || 
+            !existingListing.getOwner().getAccount().getEmail().equals(email)) {
+            throw new UnauthorizedListingAccessException();
+        }
+
+        // Update the listing fields
+        if (updatedData.getTitle() != null) {
+            existingListing.setTitle(updatedData.getTitle());
+        }
+        if (updatedData.getDescription() != null) {
+            existingListing.setDescription(updatedData.getDescription());
+        }
+        if (updatedData.getPrice() != null) {
+            existingListing.setPrice(updatedData.getPrice());
+        }
+        if (updatedData.getPickUpLocation() != null) {
+            existingListing.setPickUpLocation(updatedData.getPickUpLocation());
+        }
+        if (updatedData.getDropOffLocation() != null) {
+            existingListing.setDropOffLocation(updatedData.getDropOffLocation());
+        }
+        if (updatedData.getState() != null) {
+            existingListing.setState(updatedData.getState());
+        }
+        if (updatedData.getVehicle() != null) {
+            existingListing.setVehicle(updatedData.getVehicle());
+        }
+        if (updatedData.getAvailability() != null) {
+            existingListing.setAvailability(updatedData.getAvailability());
+        }
+        if (updatedData.getPhotos() != null) {
+            existingListing.setPhotos(updatedData.getPhotos());
+        }
+
+        return listingRepository.save(existingListing);
+    }
 }
