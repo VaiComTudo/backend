@@ -33,7 +33,7 @@ import com.vaicomtudo.backend.data.repository.UserRepository;
 import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
 
 @ExtendWith(MockitoExtension.class)
-public class AuthenticationServiceTest {
+class AuthenticationServiceTest {
 
     @Mock
     private UserRepository userRepository;

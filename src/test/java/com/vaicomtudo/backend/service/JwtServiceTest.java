@@ -11,7 +11,7 @@ import com.vaicomtudo.backend.data.entity.Account;
 import com.vaicomtudo.backend.data.entity.Role;
 import com.vaicomtudo.backend.data.entity.User;
 
-public class JwtServiceTest {
+class JwtServiceTest {
     
     @Test
     @DisplayName("Test token generation and validation.")

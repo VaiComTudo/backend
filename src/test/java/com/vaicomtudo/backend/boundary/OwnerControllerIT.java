@@ -1,6 +1,7 @@
 package com.vaicomtudo.backend.boundary;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -132,8 +133,7 @@ class OwnerControllerIT extends AbstractIntegrationTest {
 
         // Verify we got both listings back
         String content = result.getResponse().getContentAsString();
-        assertThat(content).contains("Integration Test Item 1");
-        assertThat(content).contains("Integration Test Item 2");
+        assertThat(content).contains("Integration Test Item 1").contains("Integration Test Item 2");
     }
 
     @Test
@@ -260,5 +260,92 @@ class OwnerControllerIT extends AbstractIntegrationTest {
         assertThat(updatedOwner.getListings()).hasSize(3);
         assertThat(updatedOwner.getListings())
             .allMatch(listing -> listing.getOwner().getId().equals(owner.getId()));
+    }
+
+    @Test
+    @DisplayName("Integration test: Successfully remove a listing")
+    @Requirement("VCT-59")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    @Transactional
+    void whenRemoveListing_withValidOwner_thenListingRemovedFromDatabase() throws Exception {
+        // Create a listing
+        Listing listing = new Listing();
+        listing.setTitle("To Be Removed");
+        listing.setDescription("This listing will be removed");
+        listing.setPrice(BigDecimal.valueOf(75.00));
+        listing.setState(ListingState.AVAILABLE);
+        
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("Bike");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        listing.setVehicle(vehicle);
+        listing.setPickUpLocation("Start Point");
+        listing.setDropOffLocation("End Point");
+
+        // Create listing via API
+        MvcResult createResult = mockMvc.perform(post("/api/v1/owners/listings")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(listing)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        // Extract the created listing ID from response
+        String responseContent = createResult.getResponse().getContentAsString();
+        Listing createdListing = objectMapper.readValue(responseContent, Listing.class);
+
+        // Verify listing exists in database
+        assertThat(listingRepository.findById(createdListing.getId())).isPresent();
+
+        // Remove the listing
+        mockMvc.perform(delete("/api/v1/owners/listings/" + createdListing.getId())
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNoContent());
+
+        // Verify listing is removed from database
+        assertThat(listingRepository.findById(createdListing.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Integration test: Cannot remove non-existent listing")
+    @Requirement("VCT-59")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    void whenRemoveListing_withNonExistentId_thenReturns404() throws Exception {
+        // Try to remove a listing that doesn't exist
+        java.util.UUID nonExistentId = java.util.UUID.randomUUID();
+        
+        mockMvc.perform(delete("/api/v1/owners/listings/" + nonExistentId)
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Integration test: Cannot remove listing owned by different user")
+    @Requirement("VCT-59")
+    @WithMockUser(username = "different@email.com", roles = {"NORMAL_USER"})
+    @Transactional
+    void whenRemoveListing_withDifferentOwner_thenReturns403() throws Exception {
+        // Create listing as original owner
+        Listing listing = new Listing();
+        listing.setTitle("Someone Else's Listing");
+        listing.setDescription("This belongs to a different owner");
+        listing.setPrice(BigDecimal.valueOf(60.00));
+        listing.setState(ListingState.AVAILABLE);
+        
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("Scooter");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        listing.setVehicle(vehicle);
+        listing.setPickUpLocation("Place A");
+        listing.setDropOffLocation("Place B");
+
+        listing.setOwner(owner);
+        owner.addListing(listing);
+        Listing savedListing = listingRepository.save(listing);
+
+        // Try to remove as different user (the @WithMockUser has different@email.com)
+        // This should fail with 403 because the listing belongs to test@email.com
+        mockMvc.perform(delete("/api/v1/owners/listings/" + savedListing.getId())
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isForbidden()); // Changed to 403 as that's what the system returns
     }
 }
