@@ -6,9 +6,26 @@ on:
   pull_request:
     branches: [main, dev]
     types: [opened, synchronize]
+  workflow_run:
+    workflows: ["Enforce PRs from dev"]
+    types: [completed]
 
 jobs:
+  check-branch-requirement:
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for branch check workflow
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          check-name: 'check-source-branch'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+
   build:
+    needs: [check-branch-requirement]
+    if: ${{ !cancelled() && (needs.check-branch-requirement.result == 'success' || needs.check-branch-requirement.result == 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
