@@ -231,16 +231,19 @@ public class BookingSteps {
         
         submitButton.click();
 
-        // Wait for success alert/message
-        wait.until(ExpectedConditions.alertIsPresent());
-        String alertText = driver.switchTo().alert().getText();
-        assertTrue(
-            alertText.contains("Booking request submitted") || 
-            alertText.contains("successfully") ||
-            alertText.contains("owner will review"),
-            "Success alert should indicate booking was submitted"
+        // Wait for success toast to appear
+        WebElement successToast = wait.until(
+            ExpectedConditions.visibilityOfElementLocated(By.id("booking-success-toast"))
         );
-        driver.switchTo().alert().accept();
+        
+        assertTrue(successToast.isDisplayed(), "Booking success toast should be displayed");
+        String toastText = successToast.getText();
+        assertTrue(
+            toastText.contains("Booking request submitted") || 
+            toastText.contains("successfully") ||
+            toastText.contains("owner will review"),
+            "Success toast should indicate booking was submitted"
+        );
         
         // Modal should close after successful submission
         wait.until(ExpectedConditions.invisibilityOfElementLocated(By.id("booking-modal")));
