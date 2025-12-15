@@ -154,16 +154,23 @@ public class BookingSteps {
 
         // Log in as renter and navigate to the listing
         driver.get(frontendUrl + "/login");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
-        WebElement emailField = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("email")));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("login-form")));
+
+        WebElement emailField = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("login-email")));
+        emailField.clear();
         emailField.sendKeys(renterEmail);
 
-        WebElement passwordField = driver.findElement(By.id("password"));
+        WebElement passwordField = driver.findElement(By.id("login-password"));
+        passwordField.clear();
         passwordField.sendKeys(testPassword);
 
-        WebElement loginButton = driver.findElement(By.id("login-button"));
-        loginButton.click();
+        WebElement submitButton = driver.findElement(By.id("login-submit-btn"));
+        submitButton.click();
+
+        // Wait for redirect to explore page
+        wait.until(d -> d.getCurrentUrl().contains("/explore"));
 
         // Navigate to the listing details page
         wait.until(ExpectedConditions.urlContains("/"));
