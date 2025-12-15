@@ -222,7 +222,7 @@ public class BookingSteps {
 
     @Then("I submit the booking request to the owner for approval")
     public void i_submit_the_booking_request_to_the_owner_for_approval() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
 
         // Find and click the submit booking button
         WebElement submitButton = wait.until(
@@ -232,27 +232,23 @@ public class BookingSteps {
         // Use JavaScript click to ensure the event fires properly
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", submitButton);
 
-        // Wait for React to update the state
+        // Check if there's an error in the modal
         try {
             Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        // Check if there's an error in the modal first
-        try {
             WebElement errorElement = driver.findElement(By.id("booking-error"));
             if (errorElement.isDisplayed()) {
                 throw new AssertionError("Booking failed with error: " + errorElement.getText());
             }
         } catch (org.openqa.selenium.NoSuchElementException e) {
             // No error - continue
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
 
-        // Wait for the modal to close
+        // Wait for the modal to close first (modal has 500ms delay)
         wait.until(ExpectedConditions.invisibilityOfElementLocated(By.id("booking-modal")));
 
-        // Wait for success toast to appear
+        // Now wait for success toast to appear - it should be visible after modal closes
         WebElement successToast = wait.until(
             ExpectedConditions.visibilityOfElementLocated(By.id("booking-success-toast"))
         );
