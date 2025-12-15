@@ -6,9 +6,13 @@ on:
   pull_request:
     branches: [main, dev]
     types: [opened, synchronize]
+  workflow_run:
+    workflows: ["Enforce PRs from dev"]
+    types: [completed]
 
 jobs:
   build:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
