@@ -80,6 +80,11 @@ public class ListingService {
         return listingRepository.findAll(spec, pageable);
     }
 
+    public Listing getListingById(UUID listingId) {
+        return listingRepository.findById(listingId)
+            .orElseThrow(ListingNotFoundException::new);
+    }
+
     @Transactional
     public void removeListing(UUID listingId, String email) {
         // Fetch the listing from the database

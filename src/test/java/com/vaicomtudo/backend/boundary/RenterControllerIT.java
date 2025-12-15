@@ -521,4 +521,93 @@ class RenterControllerIT extends AbstractIntegrationTest {
             .andExpect(jsonPath("$.content[0].title").value("Other's Perfect Bike"))
             .andExpect(jsonPath("$.totalElements").value(1));
     }
+
+    @Test
+    @DisplayName("Integration test: Get listing by ID returns complete listing details")
+    @Requirement("VCT-35")
+    void whenGetListingById_thenReturnsCompleteListingDetails() throws Exception {
+        // Create a listing
+        Listing listing = new Listing();
+        listing.setOwner(owner);
+        listing.setTitle("Detailed Mountain Bike");
+        listing.setDescription("A bike with complete information");
+        listing.setPrice(BigDecimal.valueOf(35.50));
+        listing.setState(ListingState.AVAILABLE);
+
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("bicycle");
+        vehicle.setCondition(VehicleCondition.EXCELLENT);
+        listing.setVehicle(vehicle);
+        listing.setPickUpLocation("Aveiro Centro");
+        listing.setDropOffLocation("Aveiro Station");
+        
+        listing = listingRepository.save(listing);
+        String listingId = listing.getId().toString();
+
+        // Retrieve listing by ID
+        mockMvc.perform(get("/api/v1/renters/listings/{id}", listingId)
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(listingId))
+            .andExpect(jsonPath("$.title").value("Detailed Mountain Bike"))
+            .andExpect(jsonPath("$.description").value("A bike with complete information"))
+            .andExpect(jsonPath("$.price").value(35.50))
+            .andExpect(jsonPath("$.state").value("AVAILABLE"))
+            .andExpect(jsonPath("$.vehicle.type").value("bicycle"))
+            .andExpect(jsonPath("$.vehicle.condition").value("EXCELLENT"))
+            .andExpect(jsonPath("$.pickUpLocation").value("Aveiro Centro"))
+            .andExpect(jsonPath("$.dropOffLocation").value("Aveiro Station"));
+    }
+
+    @Test
+    @DisplayName("Integration test: Get listing by non-existent ID returns 404")
+    @Requirement("VCT-35")
+    void whenGetListingById_withNonExistentId_thenReturnsNotFound() throws Exception {
+        // Use a random UUID that doesn't exist
+        String nonExistentId = java.util.UUID.randomUUID().toString();
+
+        mockMvc.perform(get("/api/v1/renters/listings/{id}", nonExistentId)
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Integration test: Get listing by ID returns listing regardless of state")
+    @Requirement("VCT-35")
+    void whenGetListingById_withUnavailableListing_thenReturnsListing() throws Exception {
+        // Create an unavailable listing
+        Listing listing = new Listing();
+        listing.setOwner(owner);
+        listing.setTitle("Unavailable Bike");
+        listing.setDescription("This bike is not available");
+        listing.setPrice(BigDecimal.valueOf(20.00));
+        listing.setState(ListingState.UNAVAILABLE);
+
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("bicycle");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        listing.setVehicle(vehicle);
+        listing.setPickUpLocation("Porto");
+        listing.setDropOffLocation("Lisboa");
+        
+        listing = listingRepository.save(listing);
+        String listingId = listing.getId().toString();
+
+        // Should still return the listing even if unavailable
+        mockMvc.perform(get("/api/v1/renters/listings/{id}", listingId)
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(listingId))
+            .andExpect(jsonPath("$.title").value("Unavailable Bike"))
+            .andExpect(jsonPath("$.state").value("UNAVAILABLE"));
+    }
+
+    @Test
+    @DisplayName("Integration test: Get listing by ID with invalid UUID format returns 400")
+    @Requirement("VCT-35")
+    void whenGetListingById_withInvalidUuidFormat_thenReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/v1/renters/listings/{id}", "invalid-uuid")
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest());
+    }
 }
