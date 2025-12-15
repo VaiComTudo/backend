@@ -172,12 +172,23 @@ public class BookingSteps {
         // Wait for redirect to explore page
         wait.until(d -> d.getCurrentUrl().contains("/explore"));
 
-        // Navigate to the listing details page
-        wait.until(ExpectedConditions.urlContains("/"));
-        driver.get(frontendUrl + "/listings/" + testListing.getId());
+        // Wait for listings to load
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("listings-grid")));
         
-        // Wait for listing details to load
-        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("listing-title")));
+        // Find the specific listing card and click "Book Now" button
+        WebElement listingCard = wait.until(
+            ExpectedConditions.presenceOfElementLocated(By.id("listing-" + testListing.getId()))
+        );
+        
+        // Scroll to the listing if needed
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", listingCard);
+        
+        // Find and click the "Book Now" button within this listing card
+        WebElement bookNowButton = listingCard.findElement(By.xpath(".//button[contains(text(), 'Book Now')]"));
+        bookNowButton.click();
+        
+        // Wait for the booking modal to appear
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("booking-modal")));
     }
 
     @When("I choose the rental dates {string} and {string} on the calendar")
@@ -194,29 +205,19 @@ public class BookingSteps {
             ExpectedConditions.presenceOfElementLocated(By.id("booking-form"))
         );
 
-        // Find and fill the pickup date/time fields
-        WebElement pickupDateField = bookingForm.findElement(By.id("pickup-date"));
-        WebElement pickupTimeField = bookingForm.findElement(By.id("pickup-time"));
-        
-        // Clear and set pickup date
-        pickupDateField.clear();
-        pickupDateField.sendKeys(nextSaturday.toString());
-        
-        // Clear and set pickup time
-        pickupTimeField.clear();
-        pickupTimeField.sendKeys("10:00");
+        // Format datetime-local values (YYYY-MM-DDTHH:MM)
+        String pickupDateTime = nextSaturday.toString() + "T10:00";
+        String dropoffDateTime = nextSunday.toString() + "T18:00";
 
-        // Find and fill the dropoff date/time fields
-        WebElement dropoffDateField = bookingForm.findElement(By.id("dropoff-date"));
-        WebElement dropoffTimeField = bookingForm.findElement(By.id("dropoff-time"));
-        
-        // Clear and set dropoff date
-        dropoffDateField.clear();
-        dropoffDateField.sendKeys(nextSunday.toString());
-        
-        // Clear and set dropoff time
-        dropoffTimeField.clear();
-        dropoffTimeField.sendKeys("18:00");
+        // Find and fill the pickup datetime field
+        WebElement pickupDateTimeField = bookingForm.findElement(By.id("pickup-datetime"));
+        pickupDateTimeField.clear();
+        pickupDateTimeField.sendKeys(pickupDateTime);
+
+        // Find and fill the dropoff datetime field
+        WebElement dropoffDateTimeField = bookingForm.findElement(By.id("dropoff-datetime"));
+        dropoffDateTimeField.clear();
+        dropoffDateTimeField.sendKeys(dropoffDateTime);
     }
 
     @Then("I submit the booking request to the owner for approval")
@@ -228,17 +229,21 @@ public class BookingSteps {
             ExpectedConditions.elementToBeClickable(By.id("submit-booking-button"))
         );
         
-        // Use JavaScript click to avoid any overlay issues
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", submitButton);
+        submitButton.click();
 
-        // Wait for success message
-        WebElement successMessage = wait.until(
-            ExpectedConditions.presenceOfElementLocated(
-                By.xpath("//*[contains(text(), 'Booking request submitted') or contains(text(), 'booking submitted') or contains(text(), 'Request sent')]")
-            )
+        // Wait for success alert/message
+        wait.until(ExpectedConditions.alertIsPresent());
+        String alertText = driver.switchTo().alert().getText();
+        assertTrue(
+            alertText.contains("Booking request submitted") || 
+            alertText.contains("successfully") ||
+            alertText.contains("owner will review"),
+            "Success alert should indicate booking was submitted"
         );
+        driver.switchTo().alert().accept();
         
-        assertTrue(successMessage.isDisplayed(), "Booking success message should be displayed");
+        // Modal should close after successful submission
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.id("booking-modal")));
     }
 
     @And("I wait for the owner's approval")
