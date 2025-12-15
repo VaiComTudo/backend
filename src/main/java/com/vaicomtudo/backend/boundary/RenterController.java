@@ -9,6 +9,7 @@ import com.vaicomtudo.backend.service.ListingService;
 import io.micrometer.core.annotation.Timed;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -54,5 +56,12 @@ public class RenterController {
 
         Page<Listing> listings = listingService.searchAvailableListings(category, location, minPrice, maxPrice, currentUserEmail, pageable);
         return ResponseEntity.ok(listings);
+    }
+
+    @GetMapping("/listings/{listingId}")
+    @Timed(value = "request.rentersgetlistingbyid")
+    public ResponseEntity<Listing> getListingById(@PathVariable UUID listingId) {
+        Listing listing = listingService.getListingById(listingId);
+        return ResponseEntity.ok(listing);
     }
 }

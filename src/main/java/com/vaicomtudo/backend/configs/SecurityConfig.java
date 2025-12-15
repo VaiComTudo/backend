@@ -32,7 +32,8 @@ public class SecurityConfig {
                     "/v3/api-docs/**",
                     "/swagger-ui.html",
                     "/actuator/**",
-                    "/api/v1/renters/listings"
+                    "/api/v1/renters/listings",
+                    "/api/v1/renters/listings/**"
                 ).permitAll()
                 .anyRequest().authenticated())
             .sessionManagement(session -> session
