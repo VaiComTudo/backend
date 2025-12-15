@@ -464,4 +464,63 @@ class RenterControllerTest extends AbstractIntegrationTest {
 			.andExpect(jsonPath("$.content[0].title", is("Other User's Bicycle")))
 			.andExpect(jsonPath("$.totalElements", is(1)));
 	}
+
+	@Test
+	@DisplayName("GET /api/v1/renters/listings/{id} should return listing details")
+	@Requirement("VCT-35")
+	void whenGetListingById_withValidId_thenReturnsListingDetails() throws Exception {
+		// Arrange
+		UUID listingId = listing1.getId();
+		when(listingService.getListingById(listingId))
+			.thenReturn(listing1);
+
+		// Act & Assert
+		mockMvc.perform(get("/api/v1/renters/listings/{id}", listingId)
+			.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isOk())
+			.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+			.andExpect(jsonPath("$.id", is(listingId.toString())))
+			.andExpect(jsonPath("$.title", is("Bicycle Rental")))
+			.andExpect(jsonPath("$.description", is("Mountain bike for rent")))
+			.andExpect(jsonPath("$.price", is(25.0)))
+			.andExpect(jsonPath("$.state", is("AVAILABLE")))
+			.andExpect(jsonPath("$.vehicle.type", is("bicycle")))
+			.andExpect(jsonPath("$.vehicle.condition", is("GOOD")))
+			.andExpect(jsonPath("$.pickUpLocation", is("Location A")))
+			.andExpect(jsonPath("$.dropOffLocation", is("Location B")));
+	}
+
+	@Test
+	@DisplayName("GET /api/v1/renters/listings/{id} with non-existent ID should return 404")
+	@Requirement("VCT-35")
+	void whenGetListingById_withNonExistentId_thenReturnsNotFound() throws Exception {
+		// Arrange
+		UUID nonExistentId = UUID.randomUUID();
+		when(listingService.getListingById(nonExistentId))
+			.thenThrow(new com.vaicomtudo.backend.exception.ListingNotFoundException());
+
+		// Act & Assert
+		mockMvc.perform(get("/api/v1/renters/listings/{id}", nonExistentId)
+			.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isNotFound());
+	}
+
+	@Test
+	@DisplayName("GET /api/v1/renters/listings/{id} should return listing regardless of state")
+	@Requirement("VCT-35")
+	void whenGetListingById_withUnavailableListing_thenReturnsListing() throws Exception {
+		// Arrange
+		listing1.setState(ListingState.UNAVAILABLE);
+		UUID listingId = listing1.getId();
+		when(listingService.getListingById(listingId))
+			.thenReturn(listing1);
+
+		// Act & Assert
+		mockMvc.perform(get("/api/v1/renters/listings/{id}", listingId)
+			.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isOk())
+			.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+			.andExpect(jsonPath("$.id", is(listingId.toString())))
+			.andExpect(jsonPath("$.state", is("UNAVAILABLE")));
+	}
 }

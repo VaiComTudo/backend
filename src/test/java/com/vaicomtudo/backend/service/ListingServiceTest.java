@@ -763,4 +763,82 @@ class ListingServiceTest {
         assertThat(result.getContent().get(0).getOwner().getAccount().getEmail()).isNotEqualTo(currentUserEmail);
         verify(listingRepository, times(1)).findAll(any(Specification.class), eq(pageable));
     }
+
+    @Test
+    @DisplayName("getListingById should return listing when ID exists")
+    @Requirement("VCT-35")
+    void whenGetListingById_withValidId_thenReturnListing() {
+        // Arrange
+        UUID listingId = listing.getId();
+        when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
+
+        // Act
+        Listing result = listingService.getListingById(listingId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(listingId);
+        assertThat(result.getTitle()).isEqualTo("Test Item");
+        assertThat(result.getDescription()).isEqualTo("Test Description");
+        assertThat(result.getPrice()).isEqualTo(BigDecimal.valueOf(50.00));
+        assertThat(result.getState()).isEqualTo(ListingState.AVAILABLE);
+        assertThat(result.getVehicle().getType()).isEqualTo("Car");
+        assertThat(result.getVehicle().getCondition()).isEqualTo(VehicleCondition.GOOD);
+        assertThat(result.getPickUpLocation()).isEqualTo("Test Pickup");
+        assertThat(result.getDropOffLocation()).isEqualTo("Test Dropoff");
+        verify(listingRepository, times(1)).findById(listingId);
+    }
+
+    @Test
+    @DisplayName("getListingById should throw ListingNotFoundException when ID does not exist")
+    @Requirement("VCT-35")
+    void whenGetListingById_withNonExistentId_thenThrowListingNotFoundException() {
+        // Arrange
+        UUID nonExistentId = UUID.randomUUID();
+        when(listingRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> listingService.getListingById(nonExistentId))
+            .isInstanceOf(ListingNotFoundException.class);
+        verify(listingRepository, times(1)).findById(nonExistentId);
+    }
+
+    @Test
+    @DisplayName("getListingById should return listing regardless of state")
+    @Requirement("VCT-35")
+    void whenGetListingById_withUnavailableListing_thenReturnListing() {
+        // Arrange
+        listing.setState(ListingState.UNAVAILABLE);
+        UUID listingId = listing.getId();
+        when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
+
+        // Act
+        Listing result = listingService.getListingById(listingId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getState()).isEqualTo(ListingState.UNAVAILABLE);
+        verify(listingRepository, times(1)).findById(listingId);
+    }
+
+    @Test
+    @DisplayName("getListingById should return listing with all relationships")
+    @Requirement("VCT-35")
+    void whenGetListingById_thenReturnListingWithRelationships() {
+        // Arrange
+        UUID listingId = listing.getId();
+        when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
+
+        // Act
+        Listing result = listingService.getListingById(listingId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getOwner()).isNotNull();
+        assertThat(result.getOwner().getAccount().getEmail()).isEqualTo(ownerEmail);
+        assertThat(result.getVehicle()).isNotNull();
+        assertThat(result.getAvailability()).isNotNull();
+        assertThat(result.getPhotos()).isNotNull();
+        verify(listingRepository, times(1)).findById(listingId);
+    }
 }
