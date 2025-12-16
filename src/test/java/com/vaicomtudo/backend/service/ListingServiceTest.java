@@ -37,6 +37,7 @@ import com.vaicomtudo.backend.data.entity.ListingState;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
+import com.vaicomtudo.backend.data.repository.BookingRepository;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 import com.vaicomtudo.backend.exception.EmailNotFoundException;
@@ -54,6 +55,9 @@ class ListingServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private BookingRepository bookingRepository;
 
     @InjectMocks
     private ListingService listingService;
@@ -207,7 +211,7 @@ class ListingServiceTest {
         Page<Listing> expectedPage = new PageImpl<>(listings, pageable, listings.size());
 
         when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
-        when(listingRepository.findByOwner(owner, pageable)).thenReturn(expectedPage);
+        when(listingRepository.findByOwnerExcludingInvalid(owner, ListingState.INVALID, pageable)).thenReturn(expectedPage);
 
         // Act
         Page<Listing> result = listingService.getListingsPaginated(ownerEmail, pageable);
@@ -220,7 +224,7 @@ class ListingServiceTest {
         assertThat(result.getNumber()).isZero();
         assertThat(result.getSize()).isEqualTo(10);
         verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
-        verify(listingRepository, times(1)).findByOwner(owner, pageable);
+        verify(listingRepository, times(1)).findByOwnerExcludingInvalid(owner, ListingState.INVALID, pageable);
     }
 
     @Test
@@ -232,7 +236,7 @@ class ListingServiceTest {
         Page<Listing> emptyPage = new PageImpl<>(new ArrayList<>(), pageable, 0);
 
         when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
-        when(listingRepository.findByOwner(owner, pageable)).thenReturn(emptyPage);
+        when(listingRepository.findByOwnerExcludingInvalid(owner, ListingState.INVALID, pageable)).thenReturn(emptyPage);
 
         // Act
         Page<Listing> result = listingService.getListingsPaginated(ownerEmail, pageable);
@@ -243,7 +247,7 @@ class ListingServiceTest {
         assertThat(result.getTotalElements()).isZero();
         assertThat(result.getTotalPages()).isZero();
         verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
-        verify(listingRepository, times(1)).findByOwner(owner, pageable);
+        verify(listingRepository, times(1)).findByOwnerExcludingInvalid(owner, ListingState.INVALID, pageable);
     }
 
     @Test
@@ -274,7 +278,7 @@ class ListingServiceTest {
         Page<Listing> expectedPage = new PageImpl<>(listings, pageable, 10);
 
         when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
-        when(listingRepository.findByOwner(owner, pageable)).thenReturn(expectedPage);
+        when(listingRepository.findByOwnerExcludingInvalid(owner, ListingState.INVALID, pageable)).thenReturn(expectedPage);
 
         // Act
         Page<Listing> result = listingService.getListingsPaginated(ownerEmail, pageable);
@@ -286,7 +290,7 @@ class ListingServiceTest {
         assertThat(result.getTotalPages()).isEqualTo(2);
         assertThat(result.getNumber()).isEqualTo(1);
         assertThat(result.getSize()).isEqualTo(5);
-        verify(listingRepository, times(1)).findByOwner(owner, pageable);
+        verify(listingRepository, times(1)).findByOwnerExcludingInvalid(owner, ListingState.INVALID, pageable);
     }
 
     @Test
@@ -296,17 +300,20 @@ class ListingServiceTest {
         // Arrange
         listing.setOwner(owner);
         owner.addListing(listing);
+        listing.setState(ListingState.AVAILABLE);
         
         when(listingRepository.findById(listing.getId())).thenReturn(Optional.of(listing));
+        when(bookingRepository.findByListing(listing)).thenReturn(new ArrayList<>());
+        when(listingRepository.save(any(Listing.class))).thenReturn(listing);
         
         // Act
         listingService.removeListing(listing.getId(), ownerEmail);
         
         // Assert
-        assertThat(owner.getListings()).doesNotContain(listing);
-        assertThat(listing.getOwner()).isNull();
+        assertThat(listing.getState()).isEqualTo(ListingState.INVALID);
         verify(listingRepository, times(1)).findById(listing.getId());
-        verify(listingRepository, times(1)).delete(listing);
+        verify(listingRepository, times(1)).save(listing);
+        verify(listingRepository, never()).delete(any(Listing.class));
     }
 
     @Test
@@ -322,6 +329,7 @@ class ListingServiceTest {
                 .isInstanceOf(ListingNotFoundException.class);
         
         verify(listingRepository, times(1)).findById(nonExistentId);
+        verify(listingRepository, never()).save(any(Listing.class));
         verify(listingRepository, never()).delete(any(Listing.class));
     }
 
@@ -340,6 +348,7 @@ class ListingServiceTest {
                 .isInstanceOf(UnauthorizedListingAccessException.class);
         
         verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, never()).save(any(Listing.class));
         verify(listingRepository, never()).delete(any(Listing.class));
     }
 
@@ -357,6 +366,7 @@ class ListingServiceTest {
                 .isInstanceOf(UnauthorizedListingAccessException.class);
         
         verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, never()).save(any(Listing.class));
         verify(listingRepository, never()).delete(any(Listing.class));
     }
 
@@ -762,5 +772,197 @@ class ListingServiceTest {
         assertThat(result.getContent().get(0).getOwner().getAccount().getEmail()).isEqualTo("otheruser@email.com");
         assertThat(result.getContent().get(0).getOwner().getAccount().getEmail()).isNotEqualTo(currentUserEmail);
         verify(listingRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("getListingById should return listing when ID exists")
+    @Requirement("VCT-35")
+    void whenGetListingById_withValidId_thenReturnListing() {
+        // Arrange
+        UUID listingId = listing.getId();
+        when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
+
+        // Act
+        Listing result = listingService.getListingById(listingId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(listingId);
+        assertThat(result.getTitle()).isEqualTo("Test Item");
+        assertThat(result.getDescription()).isEqualTo("Test Description");
+        assertThat(result.getPrice()).isEqualTo(BigDecimal.valueOf(50.00));
+        assertThat(result.getState()).isEqualTo(ListingState.AVAILABLE);
+        assertThat(result.getVehicle().getType()).isEqualTo("Car");
+        assertThat(result.getVehicle().getCondition()).isEqualTo(VehicleCondition.GOOD);
+        assertThat(result.getPickUpLocation()).isEqualTo("Test Pickup");
+        assertThat(result.getDropOffLocation()).isEqualTo("Test Dropoff");
+        verify(listingRepository, times(1)).findById(listingId);
+    }
+
+    @Test
+    @DisplayName("getListingById should throw ListingNotFoundException when ID does not exist")
+    @Requirement("VCT-35")
+    void whenGetListingById_withNonExistentId_thenThrowListingNotFoundException() {
+        // Arrange
+        UUID nonExistentId = UUID.randomUUID();
+        when(listingRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> listingService.getListingById(nonExistentId))
+            .isInstanceOf(ListingNotFoundException.class);
+        verify(listingRepository, times(1)).findById(nonExistentId);
+    }
+
+    @Test
+    @DisplayName("getListingById should return listing regardless of state")
+    @Requirement("VCT-35")
+    void whenGetListingById_withUnavailableListing_thenReturnListing() {
+        // Arrange
+        listing.setState(ListingState.UNAVAILABLE);
+        UUID listingId = listing.getId();
+        when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
+
+        // Act
+        Listing result = listingService.getListingById(listingId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getState()).isEqualTo(ListingState.UNAVAILABLE);
+        verify(listingRepository, times(1)).findById(listingId);
+    }
+
+    @Test
+    @DisplayName("getListingById should return listing with all relationships")
+    @Requirement("VCT-35")
+    void whenGetListingById_thenReturnListingWithRelationships() {
+        // Arrange
+        UUID listingId = listing.getId();
+        when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
+
+        // Act
+        Listing result = listingService.getListingById(listingId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getOwner()).isNotNull();
+        assertThat(result.getOwner().getAccount().getEmail()).isEqualTo(ownerEmail);
+        assertThat(result.getVehicle()).isNotNull();
+        assertThat(result.getAvailability()).isNotNull();
+        assertThat(result.getPhotos()).isNotNull();
+        verify(listingRepository, times(1)).findById(listingId);
+    }
+
+    @Test
+    @DisplayName("updateListing should successfully update listing when owner matches")
+    @Requirement("VCT-58")
+    void whenUpdateListing_withValidOwner_thenListingUpdated() {
+        // Arrange
+        Listing updateData = new Listing();
+        updateData.setTitle("Updated Title");
+        updateData.setDescription("Updated Description");
+        updateData.setPrice(BigDecimal.valueOf(75.00));
+        
+        Vehicle updatedVehicle = new Vehicle();
+        updatedVehicle.setType("Bike");
+        updatedVehicle.setCondition(VehicleCondition.EXCELLENT);
+        updateData.setVehicle(updatedVehicle);
+        updateData.setPickUpLocation("New Pickup");
+        updateData.setDropOffLocation("New Dropoff");
+
+        when(listingRepository.findById(listing.getId())).thenReturn(Optional.of(listing));
+        when(listingRepository.save(any(Listing.class))).thenReturn(listing);
+        
+        // Act
+        Listing result = listingService.updateListing(listing.getId(), updateData, ownerEmail);
+        
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getTitle()).isEqualTo("Updated Title");
+        assertThat(result.getDescription()).isEqualTo("Updated Description");
+        assertThat(result.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(75.00));
+        verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, times(1)).save(listing);
+    }
+
+    @Test
+    @DisplayName("updateListing should throw ListingNotFoundException when listing does not exist")
+    @Requirement("VCT-58")
+    void whenUpdateListing_withNonExistentListing_thenThrowException() {
+        // Arrange
+        UUID nonExistentId = UUID.randomUUID();
+        Listing updateData = new Listing();
+        updateData.setTitle("Updated Title");
+        
+        when(listingRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+        
+        // Act & Assert
+        assertThatThrownBy(() -> listingService.updateListing(nonExistentId, updateData, ownerEmail))
+                .isInstanceOf(ListingNotFoundException.class);
+        
+        verify(listingRepository, times(1)).findById(nonExistentId);
+        verify(listingRepository, never()).save(any(Listing.class));
+    }
+
+    @Test
+    @DisplayName("updateListing should throw UnauthorizedListingAccessException when user is not owner")
+    @Requirement("VCT-58")
+    void whenUpdateListing_withDifferentOwner_thenThrowException() {
+        // Arrange
+        String differentEmail = "different@email.com";
+        Listing updateData = new Listing();
+        updateData.setTitle("Updated Title");
+        
+        when(listingRepository.findById(listing.getId())).thenReturn(Optional.of(listing));
+        
+        // Act & Assert
+        assertThatThrownBy(() -> listingService.updateListing(listing.getId(), updateData, differentEmail))
+                .isInstanceOf(UnauthorizedListingAccessException.class);
+        
+        verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, never()).save(any(Listing.class));
+    }
+
+    @Test
+    @DisplayName("updateListing should throw UnauthorizedListingAccessException when listing has no owner")
+    @Requirement("VCT-58")
+    void whenUpdateListing_withNoOwner_thenThrowException() {
+        // Arrange
+        listing.setOwner(null);
+        Listing updateData = new Listing();
+        updateData.setTitle("Updated Title");
+        
+        when(listingRepository.findById(listing.getId())).thenReturn(Optional.of(listing));
+        
+        // Act & Assert
+        assertThatThrownBy(() -> listingService.updateListing(listing.getId(), updateData, ownerEmail))
+                .isInstanceOf(UnauthorizedListingAccessException.class);
+        
+        verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, never()).save(any(Listing.class));
+    }
+
+    @Test
+    @DisplayName("updateListing should allow partial updates")
+    @Requirement("VCT-58")
+    void whenUpdateListing_withPartialData_thenOnlySpecifiedFieldsUpdated() {
+        // Arrange
+        String originalTitle = listing.getTitle();
+        String originalDescription = listing.getDescription();
+        
+        Listing partialUpdate = new Listing();
+        partialUpdate.setPrice(BigDecimal.valueOf(99.99));
+        
+        when(listingRepository.findById(listing.getId())).thenReturn(Optional.of(listing));
+        when(listingRepository.save(any(Listing.class))).thenReturn(listing);
+        
+        // Act
+        Listing result = listingService.updateListing(listing.getId(), partialUpdate, ownerEmail);
+        
+        // Assert
+        assertThat(result.getTitle()).isEqualTo(originalTitle); // Unchanged
+        assertThat(result.getDescription()).isEqualTo(originalDescription); // Unchanged
+        assertThat(result.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(99.99)); // Updated
+        verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, times(1)).save(listing);
     }
 }

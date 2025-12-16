@@ -4,5 +4,6 @@ public enum ListingState {
     AVAILABLE,
     UNAVAILABLE,
     MAINTENANCE,
-    BOOKED;
+    BOOKED,
+    INVALID;
 }

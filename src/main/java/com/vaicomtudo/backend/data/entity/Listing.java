@@ -69,7 +69,7 @@ public class Listing {
     @NotBlank
     private String dropOffLocation;
 
-    @ElementCollection
+    @ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)
     @CollectionTable(
         name = "listing_availability",
         joinColumns = @JoinColumn(name = "listing_id")
