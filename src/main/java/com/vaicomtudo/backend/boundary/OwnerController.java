@@ -21,6 +21,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -71,6 +72,18 @@ public class OwnerController {
         String email = authentication.getName();
         listingService.removeListing(listingId, email);
         return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasRole('NORMAL_USER')")
+    @PutMapping("/listings/{listingId}")
+    @Timed(value = "request.ownersupdatelistings")
+    public ResponseEntity<Listing> updateListing(
+            @PathVariable UUID listingId,
+            @RequestBody Listing listing,
+            Authentication authentication) {
+        String email = authentication.getName();
+        Listing updatedListing = listingService.updateListing(listingId, listing, email);
+        return ResponseEntity.ok(updatedListing);
     }
 
 }

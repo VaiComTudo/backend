@@ -36,6 +36,8 @@ public class SecurityConfig {
                     "/api/v1/renters/listings/**",
                     "/api/v1/payments",
                     "/api/v1/payments/**"
+                    "/api/v1/bookings",
+                    "/api/v1/bookings/**"
                 ).permitAll()
                 .anyRequest().authenticated())
             .sessionManagement(session -> session
