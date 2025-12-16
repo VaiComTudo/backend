@@ -1,11 +1,18 @@
 package com.vaicomtudo.backend.service;
 
 import java.math.BigDecimal;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.vaicomtudo.backend.data.entity.Payment;
+import com.vaicomtudo.backend.data.entity.Payment.PaymentStatus;
+import com.vaicomtudo.backend.data.entity.User;
+import com.vaicomtudo.backend.data.repository.PaymentRepository;
+import com.vaicomtudo.backend.data.repository.UserRepository;
 
 @Service
 public class FakePaymentService {
@@ -81,28 +88,69 @@ public class FakePaymentService {
         }
     }
 
-    private final Map<UUID, PaymentInfo> payments = new ConcurrentHashMap<>();
+    private final PaymentRepository paymentRepository;
+    private final UserRepository userRepository;
 
+    public FakePaymentService(PaymentRepository paymentRepository, UserRepository userRepository) {
+        this.paymentRepository = paymentRepository;
+        this.userRepository = userRepository;
+    }
+
+    @Transactional
     public PaymentInfo completePayment(UUID bookingId, String renterEmail, BigDecimal rentalFee, BigDecimal deposit) {
-        PaymentInfo info = payments.computeIfAbsent(bookingId, id -> {
-            PaymentInfo p = new PaymentInfo();
-            p.setBookingId(id);
-            p.setStatus(BookingPaymentStatus.PENDING);
-            return p;
-        });
+        BigDecimal total = rentalFee.add(deposit);
+        LocalDateTime now = LocalDateTime.now();
 
-        info.setRenterEmail(renterEmail);
-        info.setRentalFee(rentalFee);
-        info.setDeposit(deposit);
-        info.setTotal(rentalFee.add(deposit));
-        info.setStatus(BookingPaymentStatus.CONFIRMED);
-        info.setReceiptMessage("A digital receipt was sent to " + renterEmail);
+        Optional<Payment> existingPayment = paymentRepository.findByBookingId(bookingId);
+        Payment payment;
 
-        return info;
+        if (existingPayment.isPresent()) {
+            payment = existingPayment.get();
+            payment.setRentalFee(rentalFee);
+            payment.setDeposit(deposit);
+            payment.setTotal(total);
+            payment.setStatus(PaymentStatus.CONFIRMED);
+            payment.setReceiptMessage("A digital receipt was sent to " + renterEmail);
+            payment.setUpdatedAt(now);
+        } else {
+            Optional<User> renterUser = userRepository.findByAccountEmail(renterEmail);
+            
+            payment = Payment.builder()
+                .bookingId(bookingId)
+                .renter(renterUser.orElse(null))
+                .renterEmail(renterEmail)
+                .rentalFee(rentalFee)
+                .deposit(deposit)
+                .total(total)
+                .status(PaymentStatus.CONFIRMED)
+                .receiptMessage("A digital receipt was sent to " + renterEmail)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+        }
+
+        payment = paymentRepository.save(payment);
+
+        return toPaymentInfo(payment);
     }
 
     public PaymentInfo getPayment(UUID bookingId) {
-        return payments.get(bookingId);
+        return paymentRepository.findByBookingId(bookingId)
+            .map(this::toPaymentInfo)
+            .orElse(null);
+    }
+
+    private PaymentInfo toPaymentInfo(Payment payment) {
+        PaymentInfo info = new PaymentInfo();
+        info.setBookingId(payment.getBookingId());
+        info.setRenterEmail(payment.getRenterEmail());
+        info.setRentalFee(payment.getRentalFee());
+        info.setDeposit(payment.getDeposit());
+        info.setTotal(payment.getTotal());
+        info.setStatus(payment.getStatus() == PaymentStatus.CONFIRMED 
+            ? BookingPaymentStatus.CONFIRMED 
+            : BookingPaymentStatus.PENDING);
+        info.setReceiptMessage(payment.getReceiptMessage());
+        return info;
     }
 }
-
