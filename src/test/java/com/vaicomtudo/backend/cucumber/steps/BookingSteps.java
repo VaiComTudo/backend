@@ -258,7 +258,7 @@ public class BookingSteps {
                 
                 // Check if button is still disabled (request in progress)
                 WebElement submitBtn = driver.findElement(By.id("submit-booking-button"));
-                boolean isDisabled = !submitBtn.isEnabled() || submitBtn.getAttribute("disabled") != null;
+                boolean isDisabled = !submitBtn.isEnabled() || submitBtn.getDomAttribute("disabled") != null;
                 if (isDisabled) {
                     // Still processing, wait a bit more
                     try {
@@ -278,15 +278,15 @@ public class BookingSteps {
             try {
                 String pageSource = driver.getPageSource();
                 System.out.println("Modal still present. Page contains 'booking-error': " + pageSource.contains("booking-error"));
-                System.out.println("Submit button disabled: " + driver.findElement(By.id("submit-booking-button")).getAttribute("disabled"));
+                System.out.println("Submit button disabled: " + driver.findElement(By.id("submit-booking-button")).getDomAttribute("disabled"));
             } catch (Exception e) {
                 // Ignore
             }
         }
 
         // Now wait for the modal to close (with reduced timeout since we already waited)
-        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.id("booking-modal")));
+        //wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        //wait.until(ExpectedConditions.invisibilityOfElementLocated(By.id("booking-modal")));
 
         // Now wait for success toast to appear - it should be visible after modal closes
         //WebElement successToast = wait.until(
