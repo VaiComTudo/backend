@@ -33,6 +33,7 @@ import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.data.repository.AccountRepository;
 import com.vaicomtudo.backend.data.repository.BookingRepository;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
+import com.vaicomtudo.backend.data.repository.PaymentRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 import com.vaicomtudo.backend.dto.BookingRequest;
 import com.vaicomtudo.backend.dto.BookingStateUpdateRequest;
@@ -57,6 +58,9 @@ class BookingControllerIT extends AbstractIntegrationTest {
     private AccountRepository accountRepository;
 
     @Autowired
+    private PaymentRepository paymentRepository;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     private User renter;
@@ -67,6 +71,8 @@ class BookingControllerIT extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // Ordem importante devido à FK fk_payment_renter (payment -> users)
+        paymentRepository.deleteAll();
         bookingRepository.deleteAll();
         listingRepository.deleteAll();
         userRepository.deleteAll();

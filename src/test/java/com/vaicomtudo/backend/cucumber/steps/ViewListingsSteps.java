@@ -62,6 +62,7 @@ public class ViewListingsSteps {
         bookingRepository.deleteAll();
         listingRepository.deleteAll();
         userRepository.deleteAll();
+        accountRepository.deleteAll();
 
         Account account = Account.builder()
             .email(testEmail)
@@ -133,13 +134,9 @@ public class ViewListingsSteps {
 
     @When("I navigate to my listings dashboard")
     public void i_navigate_to_my_listings_dashboard() {
+        driver.get(frontendUrl + "/my-listings");
+        
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-
-        WebElement myListingsButton = wait.until(
-            ExpectedConditions.elementToBeClickable(By.id("nav-my-listings"))
-        );
-        myListingsButton.click();
-
         wait.until(ExpectedConditions.presenceOfElementLocated(By.id("listings-container")));
     }
 
