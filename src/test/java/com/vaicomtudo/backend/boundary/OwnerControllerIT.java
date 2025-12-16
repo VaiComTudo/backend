@@ -31,6 +31,7 @@ import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
+import com.vaicomtudo.backend.data.repository.PaymentRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 import com.vaicomtudo.backend.data.repository.AccountRepository;
 
@@ -53,10 +54,15 @@ class OwnerControllerIT extends AbstractIntegrationTest {
     @Autowired
     private AccountRepository accountRepository;
 
+    @Autowired
+    private PaymentRepository paymentRepository;
+
     private User owner;
 
     @BeforeEach
     void setUp() {
+        // Ordem importante devido à FK fk_payment_renter (payment -> users)
+        paymentRepository.deleteAll();
         listingRepository.deleteAll();
         userRepository.deleteAll();
         accountRepository.deleteAll();

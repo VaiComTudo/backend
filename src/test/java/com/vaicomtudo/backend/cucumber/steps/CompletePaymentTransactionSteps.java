@@ -23,6 +23,7 @@ import com.vaicomtudo.backend.data.entity.Role;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.repository.AccountRepository;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
+import com.vaicomtudo.backend.data.repository.PaymentRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
 import io.cucumber.java.en.And;
@@ -45,6 +46,9 @@ public class CompletePaymentTransactionSteps {
     private AccountRepository accountRepository;
 
     @Autowired
+    private PaymentRepository paymentRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Value("${frontend.url}")
@@ -61,6 +65,8 @@ public class CompletePaymentTransactionSteps {
         wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
         // Limpar dados anteriores
+        // Ordem importante devido à FK fk_payment_renter (payment -> users)
+        paymentRepository.deleteAll();
         listingRepository.deleteAll();
         userRepository.deleteAll();
         accountRepository.deleteAll();
