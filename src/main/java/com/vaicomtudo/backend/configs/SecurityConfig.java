@@ -34,6 +34,7 @@ public class SecurityConfig {
                     "/actuator/**",
                     "/api/v1/renters/listings",
                     "/api/v1/renters/listings/**",
+                    "/api/v1/payments",
                     "/api/v1/payments/**"
                 ).permitAll()
                 .anyRequest().authenticated())
