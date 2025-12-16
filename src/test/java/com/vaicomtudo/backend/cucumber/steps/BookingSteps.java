@@ -285,22 +285,22 @@ public class BookingSteps {
         }
 
         // Now wait for the modal to close (with reduced timeout since we already waited)
-        //wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        //wait.until(ExpectedConditions.invisibilityOfElementLocated(By.id("booking-modal")));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.id("booking-modal")));
 
         // Now wait for success toast to appear - it should be visible after modal closes
-        //WebElement successToast = wait.until(
-        //    ExpectedConditions.visibilityOfElementLocated(By.id("booking-success-toast"))
-        //);
+        WebElement successToast = wait.until(
+            ExpectedConditions.visibilityOfElementLocated(By.id("booking-success-toast"))
+        );
         
-        //assertTrue(successToast.isDisplayed(), "Booking success toast should be displayed");
-        //String toastText = successToast.getText();
-        //assertTrue(
-        //    toastText.contains("Booking request submitted") || 
-        //    toastText.contains("successfully") ||
-        //    toastText.contains("owner will review"),
-        //    "Success toast should indicate booking was submitted. Got: " + toastText
-        //);
+        assertTrue(successToast.isDisplayed(), "Booking success toast should be displayed");
+        String toastText = successToast.getText();
+        assertTrue(
+            toastText.contains("Booking request submitted") || 
+            toastText.contains("successfully") ||
+            toastText.contains("owner will review"),
+            "Success toast should indicate booking was submitted. Got: " + toastText
+        );
     }
 
     @And("I wait for the owner's approval")
