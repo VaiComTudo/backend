@@ -62,6 +62,7 @@ public class ViewListingsSteps {
         bookingRepository.deleteAll();
         listingRepository.deleteAll();
         userRepository.deleteAll();
+        accountRepository.deleteAll();
 
         Account account = Account.builder()
             .email(testEmail)
