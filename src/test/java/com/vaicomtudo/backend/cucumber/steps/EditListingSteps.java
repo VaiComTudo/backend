@@ -169,10 +169,10 @@ public class EditListingSteps {
         assertTrue(priceInput.isEnabled(), "Price field should be editable");
         
         // Verify original values are loaded
-        assertEquals(originalTitle, titleInput.getDomAttribute("value"), "Original title should be loaded");
-        assertEquals(originalDescription, descriptionInput.getDomAttribute("value"), "Original description should be loaded");
+        assertEquals(originalTitle, titleInput.getDomProperty("value"), "Original title should be loaded");
+        assertEquals(originalDescription, descriptionInput.getDomProperty("value"), "Original description should be loaded");
         // Compare price as BigDecimal to handle formatting differences (25 vs 25.0)
-        assertEquals(0, new BigDecimal(priceInput.getDomAttribute("value")).compareTo(originalPrice), "Original price should be loaded");
+        assertEquals(0, new BigDecimal(priceInput.getDomProperty("value")).compareTo(originalPrice), "Original price should be loaded");
         
         // Modify the fields
         titleInput.clear();
