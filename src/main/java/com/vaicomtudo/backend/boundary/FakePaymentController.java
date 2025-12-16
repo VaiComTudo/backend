@@ -3,6 +3,7 @@ package com.vaicomtudo.backend.boundary;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -50,7 +51,12 @@ public class FakePaymentController {
         @RequestBody CompletePaymentRequest request
     ) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String renterEmail = authentication != null ? authentication.getName() : null;
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        String renterEmail = authentication.getName();
 
         PaymentInfo info = paymentService.completePayment(
             bookingId,
