@@ -52,7 +52,11 @@ public class FakePaymentController {
     ) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || !authentication.isAuthenticated()) {
+        // Se o pedido não tiver utilizador autenticado (incluindo utilizador anónimo),
+        // não deve ser possível completar o pagamento.
+        if (authentication == null
+            || !authentication.isAuthenticated()
+            || "anonymousUser".equals(authentication.getPrincipal())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 

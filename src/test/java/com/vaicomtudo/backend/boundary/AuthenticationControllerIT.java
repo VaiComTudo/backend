@@ -23,6 +23,7 @@ import com.vaicomtudo.backend.data.entity.Account;
 import com.vaicomtudo.backend.data.entity.Role;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.repository.AccountRepository;
+import com.vaicomtudo.backend.data.repository.PaymentRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
 import app.getxray.xray.junit.customjunitxml.annotations.Requirement;
@@ -40,6 +41,9 @@ class AuthenticationControllerIT extends AbstractIntegrationTest {
     private AccountRepository accountRepository;
 
     @Autowired
+    private PaymentRepository paymentRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -47,6 +51,8 @@ class AuthenticationControllerIT extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // Ordem importante devido à FK fk_payment_renter (payment -> users)
+        paymentRepository.deleteAll();
         userRepository.deleteAll();
         accountRepository.deleteAll();
     }
