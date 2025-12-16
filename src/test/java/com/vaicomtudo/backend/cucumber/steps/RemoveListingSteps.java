@@ -15,6 +15,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.vaicomtudo.backend.data.entity.Account;
+import com.vaicomtudo.backend.data.entity.Booking;
+import com.vaicomtudo.backend.data.entity.BookingState;
 import com.vaicomtudo.backend.data.entity.Listing;
 import com.vaicomtudo.backend.data.entity.ListingState;
 import com.vaicomtudo.backend.data.entity.Role;
@@ -22,6 +24,7 @@ import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.data.repository.AccountRepository;
+import com.vaicomtudo.backend.data.repository.BookingRepository;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
@@ -44,6 +47,9 @@ public class RemoveListingSteps {
     private ListingRepository listingRepository;
 
     @Autowired
+    private BookingRepository bookingRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -55,11 +61,15 @@ public class RemoveListingSteps {
     private String testEmail = "owner@test.com";
     private String testPassword = "pass123";
     private User testUser;
+    private User testRenter;
     private UUID listingId;
+    private UUID requestedBookingId;
+    private UUID acceptedBookingId;
 
     @Given("I have a bicycle listed that I want to remove from the platform")
     public void i_have_a_bicycle_listed_that_i_want_to_remove_from_the_platform() {
         // Clean up database
+        bookingRepository.deleteAll();
         listingRepository.deleteAll();
         userRepository.deleteAll();
 
@@ -99,6 +109,43 @@ public class RemoveListingSteps {
         
         listing = listingRepository.save(listing);
         listingId = listing.getId();
+
+        // Create a renter user
+        Account renterAccount = Account.builder()
+            .email("renter@test.com")
+            .passwordHash(passwordEncoder.encode("pass123"))
+            .name("Test Renter")
+            .build();
+        renterAccount = accountRepository.save(renterAccount);
+
+        testRenter = User.builder()
+            .account(renterAccount)
+            .birthdate(LocalDate.of(1995, 5, 15))
+            .rating(0.0)
+            .role(Role.NORMAL_USER)
+            .build();
+        testRenter = userRepository.save(testRenter);
+
+        // Create bookings for this listing
+        Booking requestedBooking = Booking.builder()
+            .renter(testRenter)
+            .listing(listing)
+            .pickupDateTime(java.time.LocalDateTime.now().plusDays(7))
+            .dropoffDateTime(java.time.LocalDateTime.now().plusDays(9))
+            .state(BookingState.REQUESTED)
+            .build();
+        requestedBooking = bookingRepository.save(requestedBooking);
+        requestedBookingId = requestedBooking.getId();
+
+        Booking acceptedBooking = Booking.builder()
+            .renter(testRenter)
+            .listing(listing)
+            .pickupDateTime(java.time.LocalDateTime.now().plusDays(14))
+            .dropoffDateTime(java.time.LocalDateTime.now().plusDays(16))
+            .state(BookingState.ACCEPTED)
+            .build();
+        acceptedBooking = bookingRepository.save(acceptedBooking);
+        acceptedBookingId = acceptedBooking.getId();
 
         // Login to the application
         driver.get(frontendUrl + "/login");
@@ -177,20 +224,25 @@ public class RemoveListingSteps {
 
     @And("the item is no longer available for booking")
     public void the_item_is_no_longer_available_for_booking() {
-        // Verify the listing is removed from the database
-        assertTrue(listingRepository.findById(listingId).isEmpty(), 
-            "Listing should be removed from the database");
+        // Verify the listing is marked as INVALID (soft deleted)
+        var listing = listingRepository.findById(listingId);
+        assertTrue(listing.isPresent(), "Listing should still exist in database");
+        assertTrue(listing.get().getState() == ListingState.INVALID, 
+            "Listing should be marked as INVALID");
     }
 
     @And("any pending booking requests are cancelled")
     public void any_pending_booking_requests_are_cancelled() {
-        // Note: This step is currently a placeholder as the booking system is not yet implemented
-        // When the booking system is implemented, this should verify that:
-        // 1. All bookings associated with this listing are cancelled
-        // 2. Notifications are sent to affected renters
+        // Verify that the REQUESTED booking was cancelled
+        var requestedBooking = bookingRepository.findById(requestedBookingId);
+        assertTrue(requestedBooking.isPresent(), "Requested booking should still exist in database");
+        assertTrue(requestedBooking.get().getState() == BookingState.CANCELLED, 
+            "Requested booking should be cancelled");
         
-        // For now, we just verify the listing is deleted, which satisfies the requirement
-        assertTrue(listingRepository.findById(listingId).isEmpty(), 
-            "Listing should be removed, ensuring no future bookings are possible");
+        // Verify that the ACCEPTED booking was also cancelled
+        var acceptedBooking = bookingRepository.findById(acceptedBookingId);
+        assertTrue(acceptedBooking.isPresent(), "Accepted booking should still exist in database");
+        assertTrue(acceptedBooking.get().getState() == BookingState.CANCELLED, 
+            "Accepted booking should be cancelled");
     }
 }

@@ -25,6 +25,7 @@ import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.data.repository.AccountRepository;
+import com.vaicomtudo.backend.data.repository.BookingRepository;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
@@ -49,6 +50,9 @@ public class FilterByLocationSteps {
     @Autowired
     private AccountRepository accountRepository;
 
+    @Autowired
+    private BookingRepository bookingRepository;
+
     @Value("${frontend.url}")
     private String frontendUrl;
 
@@ -61,6 +65,7 @@ public class FilterByLocationSteps {
     @Given("I am browsing available {string}")
     public void i_am_browsing_available(String category) {
         // Clean up existing data
+        bookingRepository.deleteAll();
         listingRepository.deleteAll();
         userRepository.deleteAll();
         accountRepository.deleteAll();

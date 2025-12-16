@@ -25,6 +25,7 @@ import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.data.repository.AccountRepository;
+import com.vaicomtudo.backend.data.repository.BookingRepository;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
@@ -49,6 +50,9 @@ public class SearchListingsSteps {
     @Autowired
     private AccountRepository accountRepository;
 
+    @Autowired
+    private BookingRepository bookingRepository;
+
     @Value("${frontend.url}")
     private String frontendUrl;
 
@@ -63,6 +67,7 @@ public class SearchListingsSteps {
     @Given("I want to find a bike for a weekend leisure ride")
     public void i_want_to_find_a_bike_for_a_weekend_leisure_ride() {
         // Clean up existing data
+        bookingRepository.deleteAll();
         listingRepository.deleteAll();
         userRepository.deleteAll();
         accountRepository.deleteAll();

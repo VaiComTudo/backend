@@ -10,6 +10,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
+import com.vaicomtudo.backend.data.repository.BookingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
 import io.cucumber.java.en.And;
@@ -27,6 +28,9 @@ public class RegistrationSteps {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private BookingRepository bookingRepository;
+
     @Value("${frontend.url}")
     private String frontendUrl;
 
@@ -34,6 +38,7 @@ public class RegistrationSteps {
 
     @Given("I am a new user visiting the platform")
     public void i_am_a_new_user_visiting_the_platform() {
+        bookingRepository.deleteAll();
         userRepository.deleteAll();
     }
 

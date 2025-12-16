@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -301,8 +302,10 @@ class OwnerControllerIT extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNoContent());
 
-        // Verify listing is removed from database
-        assertThat(listingRepository.findById(createdListing.getId())).isEmpty();
+        // Verify listing is marked as INVALID (soft deleted)
+        var deletedListing = listingRepository.findById(createdListing.getId());
+        assertThat(deletedListing).isPresent();
+        assertThat(deletedListing.get().getState()).isEqualTo(ListingState.INVALID);
     }
 
     @Test
@@ -347,5 +350,163 @@ class OwnerControllerIT extends AbstractIntegrationTest {
         mockMvc.perform(delete("/api/v1/owners/listings/" + savedListing.getId())
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isForbidden()); // Changed to 403 as that's what the system returns
+    }
+
+    @Test
+    @DisplayName("Integration test: Update listing successfully")
+    @Requirement("VCT-58")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    @Transactional
+    void whenUpdateListing_withValidData_thenReturns200() throws Exception {
+        // Create initial listing
+        Listing listing = new Listing();
+        listing.setTitle("Original Title");
+        listing.setDescription("Original Description");
+        listing.setPrice(BigDecimal.valueOf(50.00));
+        listing.setState(ListingState.AVAILABLE);
+        
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("Car");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        listing.setVehicle(vehicle);
+        listing.setPickUpLocation("Original Pickup");
+        listing.setDropOffLocation("Original Dropoff");
+
+        listing.setOwner(owner);
+        owner.addListing(listing);
+        Listing savedListing = listingRepository.save(listing);
+
+        // Prepare update data
+        Listing updateData = new Listing();
+        updateData.setTitle("Updated Title");
+        updateData.setDescription("Updated Description");
+        updateData.setPrice(BigDecimal.valueOf(75.00));
+        
+        Vehicle updatedVehicle = new Vehicle();
+        updatedVehicle.setType("Bike");
+        updatedVehicle.setCondition(VehicleCondition.EXCELLENT);
+        updateData.setVehicle(updatedVehicle);
+        updateData.setPickUpLocation("New Pickup");
+        updateData.setDropOffLocation("New Dropoff");
+
+        // Update the listing
+        mockMvc.perform(put("/api/v1/owners/listings/" + savedListing.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateData)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.title").value("Updated Title"))
+            .andExpect(jsonPath("$.description").value("Updated Description"))
+            .andExpect(jsonPath("$.price").value(75.00))
+            .andExpect(jsonPath("$.vehicle.type").value("Bike"))
+            .andExpect(jsonPath("$.vehicle.condition").value("EXCELLENT"))
+            .andExpect(jsonPath("$.pickUpLocation").value("New Pickup"))
+            .andExpect(jsonPath("$.dropOffLocation").value("New Dropoff"));
+
+        // Verify changes persisted
+        Listing updatedListing = listingRepository.findById(savedListing.getId()).orElseThrow();
+        assertThat(updatedListing.getTitle()).isEqualTo("Updated Title");
+        assertThat(updatedListing.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(75.00));
+    }
+
+    @Test
+    @DisplayName("Integration test: Update listing with partial data")
+    @Requirement("VCT-58")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    @Transactional
+    void whenUpdateListing_withPartialData_thenReturns200() throws Exception {
+        // Create initial listing
+        Listing listing = new Listing();
+        listing.setTitle("Original Title");
+        listing.setDescription("Original Description");
+        listing.setPrice(BigDecimal.valueOf(50.00));
+        listing.setState(ListingState.AVAILABLE);
+        
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("Car");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        listing.setVehicle(vehicle);
+        listing.setPickUpLocation("Original Pickup");
+        listing.setDropOffLocation("Original Dropoff");
+
+        listing.setOwner(owner);
+        owner.addListing(listing);
+        Listing savedListing = listingRepository.save(listing);
+
+        // Prepare partial update (only price)
+        Listing partialUpdate = new Listing();
+        partialUpdate.setPrice(BigDecimal.valueOf(99.99));
+
+        // Update only the price
+        mockMvc.perform(put("/api/v1/owners/listings/" + savedListing.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(partialUpdate)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.title").value("Original Title"))
+            .andExpect(jsonPath("$.description").value("Original Description"))
+            .andExpect(jsonPath("$.price").value(99.99));
+
+        // Verify only price changed
+        Listing updatedListing = listingRepository.findById(savedListing.getId()).orElseThrow();
+        assertThat(updatedListing.getTitle()).isEqualTo("Original Title");
+        assertThat(updatedListing.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(99.99));
+    }
+
+    @Test
+    @DisplayName("Integration test: Cannot update non-existent listing")
+    @Requirement("VCT-58")
+    @WithMockUser(username = "test@email.com", roles = {"NORMAL_USER"})
+    @Transactional
+    void whenUpdateListing_withNonExistentId_thenReturns404() throws Exception {
+        // Prepare update data
+        Listing updateData = new Listing();
+        updateData.setTitle("Updated Title");
+        updateData.setPrice(BigDecimal.valueOf(75.00));
+
+        // Try to update non-existent listing
+        mockMvc.perform(put("/api/v1/owners/listings/" + java.util.UUID.randomUUID())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateData)))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Integration test: Cannot update listing owned by different user")
+    @Requirement("VCT-58")
+    @WithMockUser(username = "different@email.com", roles = {"NORMAL_USER"})
+    @Transactional
+    void whenUpdateListing_withDifferentOwner_thenReturns403() throws Exception {
+        // Create listing as original owner
+        Listing listing = new Listing();
+        listing.setTitle("Someone Else's Listing");
+        listing.setDescription("Original Description");
+        listing.setPrice(BigDecimal.valueOf(60.00));
+        listing.setState(ListingState.AVAILABLE);
+        
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType("Scooter");
+        vehicle.setCondition(VehicleCondition.GOOD);
+        listing.setVehicle(vehicle);
+        listing.setPickUpLocation("Place A");
+        listing.setDropOffLocation("Place B");
+
+        listing.setOwner(owner);
+        owner.addListing(listing);
+        Listing savedListing = listingRepository.save(listing);
+
+        // Prepare update data
+        Listing updateData = new Listing();
+        updateData.setTitle("Hacked Title");
+        updateData.setPrice(BigDecimal.valueOf(1.00));
+
+        // Try to update as different user
+        mockMvc.perform(put("/api/v1/owners/listings/" + savedListing.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateData)))
+            .andExpect(status().isForbidden());
+
+        // Verify listing was not changed
+        Listing unchangedListing = listingRepository.findById(savedListing.getId()).orElseThrow();
+        assertThat(unchangedListing.getTitle()).isEqualTo("Someone Else's Listing");
+        assertThat(unchangedListing.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(60.00));
     }
 }
