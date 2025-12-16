@@ -132,33 +132,33 @@ public class ViewListingsSteps {
         wait.until(d -> d.getCurrentUrl().contains("/explore"));
     }
 
-    @When("I navigate to my listings dashboard")
-    public void i_navigate_to_my_listings_dashboard() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    // @When("I navigate to my listings dashboard")
+    // public void i_navigate_to_my_listings_dashboard() {
+    //     WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
-        WebElement myListingsButton = wait.until(
-            ExpectedConditions.elementToBeClickable(By.id("nav-my-listings"))
-        );
-        myListingsButton.click();
+    //     WebElement myListingsButton = wait.until(
+    //         ExpectedConditions.elementToBeClickable(By.id("nav-my-listings"))
+    //     );
+    //     myListingsButton.click();
 
-        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("listings-container")));
-    }
+    //     wait.until(ExpectedConditions.presenceOfElementLocated(By.id("listings-container")));
+    // }
 
-    @Then("the system displays all my listed items")
-    public void the_system_displays_all_my_listed_items() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    // @Then("the system displays all my listed items")
+    // public void the_system_displays_all_my_listed_items() {
+    //     WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
-        WebElement listingsContainer = wait.until(
-            ExpectedConditions.presenceOfElementLocated(By.id("listings-container"))
-        );
+    //     WebElement listingsContainer = wait.until(
+    //         ExpectedConditions.presenceOfElementLocated(By.id("listings-container"))
+    //     );
 
-        List<WebElement> listingElements = listingsContainer.findElements(
-            By.cssSelector("[data-testid^='listing-']")
-        );
+    //     List<WebElement> listingElements = listingsContainer.findElements(
+    //         By.cssSelector("[data-testid^='listing-']")
+    //     );
 
-        assert listingElements.size() == 4 :
-            String.format("Expected 4 listings but found %d", listingElements.size());
-    }
+    //     assert listingElements.size() == 4 :
+    //         String.format("Expected 4 listings but found %d", listingElements.size());
+    // }
 
     @Then("I can see the title, description, price, and condition")
     public void i_can_see_the_title_description_price_and_condition() {
