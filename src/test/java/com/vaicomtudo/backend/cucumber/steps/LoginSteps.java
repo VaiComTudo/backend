@@ -15,6 +15,7 @@ import com.vaicomtudo.backend.data.entity.Account;
 import com.vaicomtudo.backend.data.entity.Role;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.repository.AccountRepository;
+import com.vaicomtudo.backend.data.repository.BookingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
 import io.cucumber.java.en.And;
@@ -39,6 +40,9 @@ public class LoginSteps {
     @Autowired
     private AccountRepository accountRepository;
 
+    @Autowired
+    private BookingRepository bookingRepository;
+
     @Value("${frontend.url}")
     private String frontendUrl;
 
@@ -47,6 +51,7 @@ public class LoginSteps {
 
     @Given("I have a registered account")
     public void i_have_a_registered_account() {
+        bookingRepository.deleteAll();
         userRepository.deleteAll();
 
         testEmail = "email@email.com";

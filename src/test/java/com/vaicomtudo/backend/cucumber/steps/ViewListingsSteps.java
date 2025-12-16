@@ -22,6 +22,7 @@ import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.data.repository.AccountRepository;
+import com.vaicomtudo.backend.data.repository.BookingRepository;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
@@ -46,6 +47,9 @@ public class ViewListingsSteps {
     @Autowired
     private AccountRepository accountRepository;
 
+    @Autowired
+    private BookingRepository bookingRepository;
+
     @Value("${frontend.url}")
     private String frontendUrl;
 
@@ -55,6 +59,7 @@ public class ViewListingsSteps {
 
     @Given("I am logged into my account")
     public void i_am_logged_into_my_account() {
+        bookingRepository.deleteAll();
         listingRepository.deleteAll();
         userRepository.deleteAll();
 

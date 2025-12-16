@@ -25,6 +25,7 @@ import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
 import com.vaicomtudo.backend.data.repository.AccountRepository;
+import com.vaicomtudo.backend.data.repository.BookingRepository;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 
@@ -49,6 +50,9 @@ public class FilterByPriceRangeSteps {
     @Autowired
     private AccountRepository accountRepository;
 
+    @Autowired
+    private BookingRepository bookingRepository;
+
     @Value("${frontend.url}")
     private String frontendUrl;
 
@@ -63,6 +67,7 @@ public class FilterByPriceRangeSteps {
     @Given("I am browsing available bicycles in {string}")
     public void i_am_browsing_available_bicycles_in(String location) {
         // Clean up existing data
+        bookingRepository.deleteAll();
         listingRepository.deleteAll();
         userRepository.deleteAll();
         accountRepository.deleteAll();

@@ -37,6 +37,7 @@ import com.vaicomtudo.backend.data.entity.ListingState;
 import com.vaicomtudo.backend.data.entity.User;
 import com.vaicomtudo.backend.data.entity.Vehicle;
 import com.vaicomtudo.backend.data.entity.VehicleCondition;
+import com.vaicomtudo.backend.data.repository.BookingRepository;
 import com.vaicomtudo.backend.data.repository.ListingRepository;
 import com.vaicomtudo.backend.data.repository.UserRepository;
 import com.vaicomtudo.backend.exception.EmailNotFoundException;
@@ -54,6 +55,9 @@ class ListingServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private BookingRepository bookingRepository;
 
     @InjectMocks
     private ListingService listingService;
@@ -207,7 +211,7 @@ class ListingServiceTest {
         Page<Listing> expectedPage = new PageImpl<>(listings, pageable, listings.size());
 
         when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
-        when(listingRepository.findByOwner(owner, pageable)).thenReturn(expectedPage);
+        when(listingRepository.findByOwnerExcludingInvalid(owner, ListingState.INVALID, pageable)).thenReturn(expectedPage);
 
         // Act
         Page<Listing> result = listingService.getListingsPaginated(ownerEmail, pageable);
@@ -220,7 +224,7 @@ class ListingServiceTest {
         assertThat(result.getNumber()).isZero();
         assertThat(result.getSize()).isEqualTo(10);
         verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
-        verify(listingRepository, times(1)).findByOwner(owner, pageable);
+        verify(listingRepository, times(1)).findByOwnerExcludingInvalid(owner, ListingState.INVALID, pageable);
     }
 
     @Test
@@ -232,7 +236,7 @@ class ListingServiceTest {
         Page<Listing> emptyPage = new PageImpl<>(new ArrayList<>(), pageable, 0);
 
         when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
-        when(listingRepository.findByOwner(owner, pageable)).thenReturn(emptyPage);
+        when(listingRepository.findByOwnerExcludingInvalid(owner, ListingState.INVALID, pageable)).thenReturn(emptyPage);
 
         // Act
         Page<Listing> result = listingService.getListingsPaginated(ownerEmail, pageable);
@@ -243,7 +247,7 @@ class ListingServiceTest {
         assertThat(result.getTotalElements()).isZero();
         assertThat(result.getTotalPages()).isZero();
         verify(userRepository, times(1)).findByAccountEmail(ownerEmail);
-        verify(listingRepository, times(1)).findByOwner(owner, pageable);
+        verify(listingRepository, times(1)).findByOwnerExcludingInvalid(owner, ListingState.INVALID, pageable);
     }
 
     @Test
@@ -274,7 +278,7 @@ class ListingServiceTest {
         Page<Listing> expectedPage = new PageImpl<>(listings, pageable, 10);
 
         when(userRepository.findByAccountEmail(ownerEmail)).thenReturn(Optional.of(owner));
-        when(listingRepository.findByOwner(owner, pageable)).thenReturn(expectedPage);
+        when(listingRepository.findByOwnerExcludingInvalid(owner, ListingState.INVALID, pageable)).thenReturn(expectedPage);
 
         // Act
         Page<Listing> result = listingService.getListingsPaginated(ownerEmail, pageable);
@@ -286,7 +290,7 @@ class ListingServiceTest {
         assertThat(result.getTotalPages()).isEqualTo(2);
         assertThat(result.getNumber()).isEqualTo(1);
         assertThat(result.getSize()).isEqualTo(5);
-        verify(listingRepository, times(1)).findByOwner(owner, pageable);
+        verify(listingRepository, times(1)).findByOwnerExcludingInvalid(owner, ListingState.INVALID, pageable);
     }
 
     @Test
@@ -296,17 +300,20 @@ class ListingServiceTest {
         // Arrange
         listing.setOwner(owner);
         owner.addListing(listing);
+        listing.setState(ListingState.AVAILABLE);
         
         when(listingRepository.findById(listing.getId())).thenReturn(Optional.of(listing));
+        when(bookingRepository.findByListing(listing)).thenReturn(new ArrayList<>());
+        when(listingRepository.save(any(Listing.class))).thenReturn(listing);
         
         // Act
         listingService.removeListing(listing.getId(), ownerEmail);
         
         // Assert
-        assertThat(owner.getListings()).doesNotContain(listing);
-        assertThat(listing.getOwner()).isNull();
+        assertThat(listing.getState()).isEqualTo(ListingState.INVALID);
         verify(listingRepository, times(1)).findById(listing.getId());
-        verify(listingRepository, times(1)).delete(listing);
+        verify(listingRepository, times(1)).save(listing);
+        verify(listingRepository, never()).delete(any(Listing.class));
     }
 
     @Test
@@ -322,6 +329,7 @@ class ListingServiceTest {
                 .isInstanceOf(ListingNotFoundException.class);
         
         verify(listingRepository, times(1)).findById(nonExistentId);
+        verify(listingRepository, never()).save(any(Listing.class));
         verify(listingRepository, never()).delete(any(Listing.class));
     }
 
@@ -340,6 +348,7 @@ class ListingServiceTest {
                 .isInstanceOf(UnauthorizedListingAccessException.class);
         
         verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, never()).save(any(Listing.class));
         verify(listingRepository, never()).delete(any(Listing.class));
     }
 
@@ -357,6 +366,7 @@ class ListingServiceTest {
                 .isInstanceOf(UnauthorizedListingAccessException.class);
         
         verify(listingRepository, times(1)).findById(listing.getId());
+        verify(listingRepository, never()).save(any(Listing.class));
         verify(listingRepository, never()).delete(any(Listing.class));
     }
 

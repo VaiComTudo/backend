@@ -302,8 +302,10 @@ class OwnerControllerIT extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNoContent());
 
-        // Verify listing is removed from database
-        assertThat(listingRepository.findById(createdListing.getId())).isEmpty();
+        // Verify listing is marked as INVALID (soft deleted)
+        var deletedListing = listingRepository.findById(createdListing.getId());
+        assertThat(deletedListing).isPresent();
+        assertThat(deletedListing.get().getState()).isEqualTo(ListingState.INVALID);
     }
 
     @Test

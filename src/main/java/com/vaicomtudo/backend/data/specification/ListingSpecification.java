@@ -74,4 +74,9 @@ public class ListingSpecification {
             return criteriaBuilder.notEqual(root.get("owner").get("account").get("email"), email);
         };
     }
+
+    public static Specification<Listing> notInvalid() {
+        return (root, query, criteriaBuilder) ->
+            criteriaBuilder.notEqual(root.get("state"), ListingState.INVALID);
+    }
 }
